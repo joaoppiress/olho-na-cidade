@@ -174,8 +174,8 @@ $ocorrenciasPainel = $stmtPainel->fetchAll();
   <div class="wrap">
     <div class="section-head">
       <div class="kicker">Base de dados centralizada</div>
-      <h2>Painéis por perfil de acesso</h2>
-      <p>O cidadão acompanha o que registrou. A prefeitura enxerga a cidade inteira, em uma área restrita a administradores.</p>
+      <h2>Painéis de ocorrências</h2>
+      <p>O cidadão acompanha as ocorrências registradas.</p>
     </div>
 
     <input type="radio" name="paineltab" id="tab-cidadao" class="panel-radio" checked>
