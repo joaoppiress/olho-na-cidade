@@ -44,12 +44,16 @@ $ocorrenciasPainel = $stmtPainel->fetchAll();
       <nav>
         <ul>
           <li><a href="#como-funciona">Como funciona</a></li>
-          <li><a href="#conta">Entrar / Cadastrar</a></li>
+          <li><a href="#conta"><?= $logado ? 'Minha conta' : 'Entrar / Cadastrar' ?></a></li>
           <li><a href="#paineis">Painéis</a></li>
           <li><a href="#tecnologia">Tecnologia</a></li>
         </ul>
       </nav>
-      <a class="nav-cta" href="php/login.php">Entrar</a>
+      <?php if ($logado): ?>
+        <a class="nav-cta" href="php/perfil.php">Perfil</a>
+      <?php else: ?>
+        <a class="nav-cta" href="php/login.php">Entrar</a>
+      <?php endif; ?>
     </div>
   </div>
 </header>
@@ -139,12 +143,21 @@ $ocorrenciasPainel = $stmtPainel->fetchAll();
       </div>
 
       <div class="conta-teaser-card">
-        <strong style="text-transform:uppercase; font-size:13px; letter-spacing:0.04em; color:#5B6169;">Área do cidadão</strong>
-        <p style="margin-top:14px; font-size:14.5px; line-height:1.6; color:#454B52;">Acesse com seu e-mail e senha ou crie uma conta nova para começar a registrar ocorrências.</p>
-        <div class="conta-teaser-actions">
-          <a href="php/login.php" class="btn-solid" style="text-decoration:none; display:inline-block;">Entrar</a>
-          <a href="php/cadastro.php" class="btn-solid" style="text-decoration:none; display:inline-block; background:var(--asphalt);">Criar conta</a>
-        </div>
+        <?php if ($logado): ?>
+          <strong style="text-transform:uppercase; font-size:13px; letter-spacing:0.04em; color:#5B6169;">Área do cidadão</strong>
+          <p style="margin-top:14px; font-size:14.5px; line-height:1.6; color:#454B52;">Você está logado como <strong><?= htmlspecialchars($_SESSION['usuario_nome']) ?></strong>. Acesse seu perfil ou seu painel de ocorrências.</p>
+          <div class="conta-teaser-actions">
+            <a href="php/perfil.php" class="btn-solid" style="text-decoration:none; display:inline-block;">Meu perfil</a>
+            <a href="php/painel.php" class="btn-solid" style="text-decoration:none; display:inline-block; background:var(--asphalt);">Meu painel</a>
+          </div>
+        <?php else: ?>
+          <strong style="text-transform:uppercase; font-size:13px; letter-spacing:0.04em; color:#5B6169;">Área do cidadão</strong>
+          <p style="margin-top:14px; font-size:14.5px; line-height:1.6; color:#454B52;">Acesse com seu e-mail e senha ou crie uma conta nova para começar a registrar ocorrências.</p>
+          <div class="conta-teaser-actions">
+            <a href="php/login.php" class="btn-solid" style="text-decoration:none; display:inline-block;">Entrar</a>
+            <a href="php/cadastro.php" class="btn-solid" style="text-decoration:none; display:inline-block; background:var(--asphalt);">Criar conta</a>
+          </div>
+        <?php endif; ?>
       </div>
     </div>
   </div>

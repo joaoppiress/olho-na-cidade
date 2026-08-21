@@ -47,6 +47,8 @@ $statusInfo = [
       <div class="sub"><?= htmlspecialchars($_SESSION['usuario_email']) ?></div>
     </div>
     <div class="painel-actions">
+      <a class="btn-line" href="../index.php">&larr; Início</a>
+      <a class="btn-line" href="perfil.php">Meu perfil</a>
       <a class="btn-solid" style="text-decoration:none;" href="Registrar.php">+ Nova ocorrência</a>
       <a class="btn-line" href="logout.php">Sair</a>
     </div>
