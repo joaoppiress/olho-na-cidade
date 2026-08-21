@@ -136,11 +136,6 @@ $ocorrenciasPainel = $stmtPainel->fetchAll();
         <div class="kicker">Acesso do cidadão</div>
         <h2 style="font-size:clamp(28px,3.6vw,40px); font-weight:800; margin-bottom:6px;">Login e cadastro</h2>
         <p style="font-size:15.5px; line-height:1.7; color:#454B52; max-width:42ch; margin-top:16px;">O cadastro e o login são páginas PHP completas — validam os dados no servidor e gravam no MySQL com senha protegida por hash (nunca em texto puro).</p>
-        <ul class="conta-points">
-          <li><span class="bullet">1</span> Sem JavaScript: só HTML, CSS e PHP.</li>
-          <li><span class="bullet">2</span> Se algum campo estiver errado, a própria página reaparece com o erro explicado.</li>
-          <li><span class="bullet">3</span> Ao entrar ou se cadastrar com sucesso, o cidadão é redirecionado para <span class="mono">php/painel.php</span>, uma rota protegida por sessão.</li>
-        </ul>
       </div>
 
       <div class="conta-teaser-card">

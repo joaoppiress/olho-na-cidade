@@ -5,7 +5,7 @@ error_reporting(E_ALL);
 // -----------------------------------------------------------
 
 $DB_HOST = 'localhost';
-$DB_NAME = 'olho_na_cidade';
+$DB_NAME = 'banco';
 $DB_USER = 'root';
 $DB_PASS = '';
 
