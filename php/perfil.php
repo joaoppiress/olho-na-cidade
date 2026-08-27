@@ -8,6 +8,8 @@ if (!isset($_SESSION['usuario_id'])) {
 
 require __DIR__ . '/config.php';
 
+$ehAdmin = (isset($_SESSION['tipo']) ? $_SESSION['tipo'] : 'cidadao') === 'admin';
+
 $stmtUsuario = $pdo->prepare('SELECT nome, email, aceite_lgpd, criado_em FROM usuarios WHERE id = ?');
 $stmtUsuario->execute([$_SESSION['usuario_id']]);
 $usuario = $stmtUsuario->fetch();
@@ -17,18 +19,23 @@ if (!$usuario) {
     exit;
 }
 
-$stmt = $pdo->prepare('SELECT id, categoria, bairro, endereco, descricao, status, criado_em FROM ocorrencias WHERE usuario_id = ? ORDER BY criado_em DESC');
-$stmt->execute([$_SESSION['usuario_id']]);
-$ocorrencias = $stmt->fetchAll();
+if ($ehAdmin) {
+    $ocorrencias = [];
+    $total = $pendentes = $emAnalise = $resolvidas = 0;
+} else {
+    $stmt = $pdo->prepare('SELECT id, categoria, bairro, endereco, descricao, status, criado_em FROM ocorrencias WHERE usuario_id = ? ORDER BY criado_em DESC');
+    $stmt->execute([$_SESSION['usuario_id']]);
+    $ocorrencias = $stmt->fetchAll();
 
-$total      = count($ocorrencias);
-$pendentes  = 0;
-$emAnalise  = 0;
-$resolvidas = 0;
-foreach ($ocorrencias as $o) {
-    if ($o['status'] === 'pendente')   $pendentes++;
-    if ($o['status'] === 'em_analise') $emAnalise++;
-    if ($o['status'] === 'resolvido')  $resolvidas++;
+    $total      = count($ocorrencias);
+    $pendentes  = 0;
+    $emAnalise  = 0;
+    $resolvidas = 0;
+    foreach ($ocorrencias as $o) {
+        if ($o['status'] === 'pendente')   $pendentes++;
+        if ($o['status'] === 'em_analise') $emAnalise++;
+        if ($o['status'] === 'resolvido')  $resolvidas++;
+    }
 }
 
 $statusInfo = [
@@ -111,10 +118,14 @@ foreach (array_slice(explode(' ', trim($usuario['nome'])), 0, 2) as $parte) {
   <div class="perfil-top">
     <div>
       <h1>Meu perfil</h1>
-      <div class="sub">Seus dados e o histórico de ocorrências registradas.</div>
+      <div class="sub"><?= $ehAdmin ? 'Seus dados de administrador.' : 'Seus dados e o histórico de ocorrências registradas.' ?></div>
     </div>
     <div class="perfil-actions">
-      <a class="btn-line" href="painel.php">Meu painel</a>
+      <?php if ($ehAdmin): ?>
+        <a class="btn-line" href="paineladm.php">Painel administrativo</a>
+      <?php else: ?>
+        <a class="btn-line" href="painel.php">Meu painel</a>
+      <?php endif; ?>
       <a class="btn-line" href="../index.php">&larr; Início</a>
       <a class="btn-line" href="logout.php">Sair</a>
     </div>
@@ -124,7 +135,9 @@ foreach (array_slice(explode(' ', trim($usuario['nome'])), 0, 2) as $parte) {
     <div class="perfil-avatar"><?= htmlspecialchars($iniciais ?: '?') ?></div>
     <div class="perfil-id">
       <div class="nome"><?= htmlspecialchars($usuario['nome']) ?></div>
-      <?php if ((int) $usuario['aceite_lgpd'] === 1): ?>
+      <?php if ($ehAdmin): ?>
+        <span class="selo" style="color:#5B6169; background:rgba(91,97,105,0.12);">Administrador</span>
+      <?php elseif ((int) $usuario['aceite_lgpd'] === 1): ?>
         <span class="selo">✓ LGPD aceita</span>
       <?php endif; ?>
     </div>
@@ -153,6 +166,7 @@ foreach (array_slice(explode(' ', trim($usuario['nome'])), 0, 2) as $parte) {
     </div>
   </div>
 
+  <?php if (!$ehAdmin): ?>
   <div class="section-label">Resumo das ocorrências</div>
   <div class="stats-grid">
     <div class="stat">
@@ -191,6 +205,7 @@ foreach (array_slice(explode(' ', trim($usuario['nome'])), 0, 2) as $parte) {
         </div>
       <?php endforeach; ?>
     </div>
+  <?php endif; ?>
   <?php endif; ?>
 
 </div>

@@ -49,7 +49,9 @@ $ocorrenciasPainel = $stmtPainel->fetchAll();
           <li><a href="#tecnologia">Tecnologia</a></li>
         </ul>
       </nav>
-      <?php if ($logado): ?>
+      <?php if ($logado && (isset($_SESSION['tipo']) ? $_SESSION['tipo'] : 'cidadao') === 'admin'): ?>
+        <a class="nav-cta" href="php/paineladm.php">Painel adm</a>
+      <?php elseif ($logado): ?>
         <a class="nav-cta" href="php/perfil.php">Perfil</a>
       <?php else: ?>
         <a class="nav-cta" href="php/login.php">Entrar</a>
@@ -139,11 +141,18 @@ $ocorrenciasPainel = $stmtPainel->fetchAll();
       <div>
         <div class="kicker">Acesso do cidadão</div>
         <h2 style="font-size:clamp(28px,3.6vw,40px); font-weight:800; margin-bottom:6px;">Login e cadastro</h2>
-        <p style="font-size:15.5px; line-height:1.7; color:#454B52; max-width:42ch; margin-top:16px;">O cadastro e o login são páginas PHP completas — validam os dados no servidor e gravam no MySQL com senha protegida por hash (nunca em texto puro).</p>
+        <p style="font-size:15.5px; line-height:1.7; color:#454B52; max-width:42ch; margin-top:16px;">Crie sua conta e acesse com segurança para acompanhar suas denúncias a qualquer momento. Seus dados e sua senha ficam protegidos, e ninguém além de você tem acesso a eles.</p>
       </div>
 
       <div class="conta-teaser-card">
-        <?php if ($logado): ?>
+        <?php if ($logado && (isset($_SESSION['tipo']) ? $_SESSION['tipo'] : 'cidadao') === 'admin'): ?>
+          <strong style="text-transform:uppercase; font-size:13px; letter-spacing:0.04em; color:#5B6169;">Área do administrador</strong>
+          <p style="margin-top:14px; font-size:14.5px; line-height:1.6; color:#454B52;">Você está logado como <strong><?= htmlspecialchars($_SESSION['usuario_nome']) ?></strong> (admin). Acesse o painel administrativo.</p>
+          <div class="conta-teaser-actions">
+            <a href="php/perfil.php" class="btn-solid" style="text-decoration:none; display:inline-block;">Meu perfil</a>
+            <a href="php/paineladm.php" class="btn-solid" style="text-decoration:none; display:inline-block; background:var(--asphalt);">Painel administrativo</a>
+          </div>
+        <?php elseif ($logado): ?>
           <strong style="text-transform:uppercase; font-size:13px; letter-spacing:0.04em; color:#5B6169;">Área do cidadão</strong>
           <p style="margin-top:14px; font-size:14.5px; line-height:1.6; color:#454B52;">Você está logado como <strong><?= htmlspecialchars($_SESSION['usuario_nome']) ?></strong>. Acesse seu perfil ou seu painel de ocorrências.</p>
           <div class="conta-teaser-actions">

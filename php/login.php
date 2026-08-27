@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($erros)) {
-        $stmt = $pdo->prepare('SELECT id, nome, email, senha_hash FROM usuarios WHERE email = ?');
+        $stmt = $pdo->prepare('SELECT id, nome, email, senha_hash, tipo FROM usuarios WHERE email = ?');
         $stmt->execute([$emailValor]);
         $usuario = $stmt->fetch();
 
@@ -27,8 +27,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['usuario_id']    = (int) $usuario['id'];
             $_SESSION['usuario_nome']  = $usuario['nome'];
             $_SESSION['usuario_email'] = $usuario['email'];
+            $_SESSION['tipo']          = $usuario['tipo'];
 
-            header('Location: painel.php');
+            if ($usuario['tipo'] === 'admin') {
+                header('Location: paineladm.php');
+            } else {
+                header('Location: painel.php');
+            }
             exit;
         }
 

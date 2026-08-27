@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 16/08/2026 às 23:34
+-- Tempo de geração: 23/08/2026 às 23:36
 -- Versão do servidor: 10.4.32-MariaDB
 -- Versão do PHP: 8.2.12
 
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Banco de dados: `olho_na_cidade`
+-- Banco de dados: `banco`
 --
 
 -- --------------------------------------------------------
@@ -39,6 +39,13 @@ CREATE TABLE `ocorrencias` (
   `criado_em` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Despejando dados para a tabela `ocorrencias`
+--
+
+INSERT INTO `ocorrencias` (`id`, `usuario_id`, `categoria`, `bairro`, `endereco`, `descricao`, `foto_path`, `status`, `criado_em`) VALUES
+(1, 1, 'Vazamento de água', 'centro', 'pinheiro, 302', 'Torneira com goteira', NULL, 'pendente', '2026-08-21 14:00:30');
+
 -- --------------------------------------------------------
 
 --
@@ -51,15 +58,17 @@ CREATE TABLE `usuarios` (
   `email` varchar(150) NOT NULL,
   `senha_hash` varchar(255) NOT NULL,
   `aceite_lgpd` tinyint(1) NOT NULL DEFAULT 0,
-  `criado_em` datetime NOT NULL DEFAULT current_timestamp()
+  `criado_em` datetime NOT NULL DEFAULT current_timestamp(),
+  `tipo` enum('cidadao','admin') NOT NULL DEFAULT 'cidadao'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Despejando dados para a tabela `usuarios`
 --
 
-INSERT INTO `usuarios` (`id`, `nome`, `email`, `senha_hash`, `aceite_lgpd`, `criado_em`) VALUES
-(1, 'Katatau', 'a@gmail.com', '$2y$10$xwk9h7.OWuz1260VMlERluY8GLj1M2G0HZ4Yse7xez7oAigkrurne', 1, '2026-08-16 18:05:19');
+INSERT INTO `usuarios` (`id`, `nome`, `email`, `senha_hash`, `aceite_lgpd`, `criado_em`, `tipo`) VALUES
+(1, 'Katatau', 'a@gmail.com', '$2y$10$xwk9h7.OWuz1260VMlERluY8GLj1M2G0HZ4Yse7xez7oAigkrurne', 1, '2026-08-16 18:05:19', 'cidadao'),
+(2, 'Administrador', 'adm@gmail.com', '$2y$10$WvXbNEbIsvI1YkL22xFiAOCrS1q0R5EQIG84ATV4ywQoACc9vPaUu', 1, '2026-08-23 18:11:15', 'admin');
 
 --
 -- Índices para tabelas despejadas
@@ -87,13 +96,13 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de tabela `ocorrencias`
 --
 ALTER TABLE `ocorrencias`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de tabela `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Restrições para tabelas despejadas
