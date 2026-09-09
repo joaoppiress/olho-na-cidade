@@ -8,24 +8,73 @@ if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['tipo']) || $_SESSION['t
 
 require __DIR__ . '/config.php';
 
-$stmt = $pdo->query('
-    SELECT o.id, o.categoria, o.bairro, o.endereco, o.descricao, o.status, o.criado_em, u.nome AS nome_cidadao
-    FROM ocorrencias o
-    JOIN usuarios u ON o.usuario_id = u.id
-    ORDER BY o.criado_em DESC
-');
-$ocorrencias = $stmt->fetchAll();
-
-$total      = count($ocorrencias);
-$pendentes  = count(array_filter($ocorrencias, function ($o) { return $o['status'] === 'pendente'; }));
-$emAnalise  = count(array_filter($ocorrencias, function ($o) { return $o['status'] === 'em_analise'; }));
-$resolvidas = count(array_filter($ocorrencias, function ($o) { return $o['status'] === 'resolvido'; }));
-
 $statusInfo = [
     'pendente'   => ['label' => 'Pendente',   'classe' => 'pendente'],
     'em_analise' => ['label' => 'Em análise', 'classe' => 'analise'],
     'resolvido'  => ['label' => 'Resolvido',  'classe' => 'resolvido'],
 ];
+
+// Opções disponíveis para os filtros (vêm do próprio banco, sem valores fixos)
+$categorias = $pdo->query('SELECT DISTINCT categoria FROM ocorrencias ORDER BY categoria')->fetchAll(PDO::FETCH_COLUMN);
+$bairros    = $pdo->query('SELECT DISTINCT bairro FROM ocorrencias ORDER BY bairro')->fetchAll(PDO::FETCH_COLUMN);
+
+// Filtros vindos da URL (GET), validados contra listas conhecidas
+$filtroStatus    = isset($_GET['status']) ? trim($_GET['status']) : '';
+$filtroCategoria = isset($_GET['categoria']) ? trim($_GET['categoria']) : '';
+$filtroBairro    = isset($_GET['bairro']) ? trim($_GET['bairro']) : '';
+
+if (!array_key_exists($filtroStatus, $statusInfo)) {
+    $filtroStatus = '';
+}
+if (!in_array($filtroCategoria, $categorias, true)) {
+    $filtroCategoria = '';
+}
+if (!in_array($filtroBairro, $bairros, true)) {
+    $filtroBairro = '';
+}
+
+$condicoes  = [];
+$parametros = [];
+
+if ($filtroStatus !== '') {
+    $condicoes[]           = 'o.status = :status';
+    $parametros['status']  = $filtroStatus;
+}
+if ($filtroCategoria !== '') {
+    $condicoes[]              = 'o.categoria = :categoria';
+    $parametros['categoria']  = $filtroCategoria;
+}
+if ($filtroBairro !== '') {
+    $condicoes[]           = 'o.bairro = :bairro';
+    $parametros['bairro']  = $filtroBairro;
+}
+
+$sql = '
+    SELECT o.id, o.categoria, o.bairro, o.endereco, o.descricao, o.status, o.criado_em, u.nome AS nome_cidadao
+    FROM ocorrencias o
+    JOIN usuarios u ON o.usuario_id = u.id
+';
+if (!empty($condicoes)) {
+    $sql .= ' WHERE ' . implode(' AND ', $condicoes);
+}
+$sql .= ' ORDER BY o.criado_em DESC';
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($parametros);
+$ocorrencias = $stmt->fetchAll();
+
+// Estatísticas gerais (sempre do total, independente do filtro aplicado)
+$stmtTotais = $pdo->query('SELECT status, COUNT(*) AS qtd FROM ocorrencias GROUP BY status');
+$totaisPorStatus = ['pendente' => 0, 'em_analise' => 0, 'resolvido' => 0];
+foreach ($stmtTotais->fetchAll() as $linha) {
+    $totaisPorStatus[$linha['status']] = (int) $linha['qtd'];
+}
+$total      = array_sum($totaisPorStatus);
+$pendentes  = $totaisPorStatus['pendente'];
+$emAnalise  = $totaisPorStatus['em_analise'];
+$resolvidas = $totaisPorStatus['resolvido'];
+
+$temFiltroAtivo = ($filtroStatus !== '' || $filtroCategoria !== '' || $filtroBairro !== '');
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -45,6 +94,21 @@ $statusInfo = [
   .painel-actions{ display:flex; gap:10px; }
   .btn-line{ border:1px solid var(--line); background:#fff; color:#454B52; padding:10px 16px; border-radius:4px; font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; text-decoration:none; }
   .empty-state{ background:#fff; border:1px dashed var(--line); border-radius:6px; padding:40px 24px; text-align:center; color:#8A8F96; font-size:14px; }
+  .filter-row{ align-items:center; }
+  .filter-row select{
+    border:1px solid var(--line); background:#fff; color:#454B52; padding:9px 12px;
+    border-radius:20px; font-size:12.5px; font-weight:600; font-family:'Inter', sans-serif;
+  }
+  .filter-row select:focus{ outline:2px solid var(--municipal-2); outline-offset:1px; }
+  .filter-row .btn-filtrar{
+    border:1px solid var(--municipal); background:var(--municipal); color:#fff; padding:9px 18px;
+    border-radius:20px; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em;
+    cursor:pointer;
+  }
+  .filter-row .btn-limpar{
+    font-size:12.5px; font-weight:600; color:#8A8F96; text-decoration:none; padding:9px 6px;
+  }
+  .filter-row .btn-limpar:hover{ color:#454B52; }
 </style>
 </head>
 <body style="background:var(--concrete);">
@@ -81,15 +145,40 @@ $statusInfo = [
     </div>
   </div>
 
-  <?php if (empty($ocorrencias)): ?>
-    <div class="empty-state">Nenhuma ocorrência registrada pelos cidadãos ainda.</div>
-  <?php else: ?>
-    <div class="admin-table-wrap">
-      <div class="filter-row">
-        <span class="chip active">Todos os bairros</span>
-        <span class="chip active">Todos os status</span>
-        <span class="chip active">Todas as categorias</span>
+  <div class="admin-table-wrap">
+    <form class="filter-row" method="get" action="paineladm.php">
+      <select name="status">
+        <option value="">Todos os status</option>
+        <?php foreach ($statusInfo as $valor => $info): ?>
+          <option value="<?= htmlspecialchars($valor) ?>" <?= $filtroStatus === $valor ? 'selected' : '' ?>><?= htmlspecialchars($info['label']) ?></option>
+        <?php endforeach; ?>
+      </select>
+
+      <select name="categoria">
+        <option value="">Todas as categorias</option>
+        <?php foreach ($categorias as $categoria): ?>
+          <option value="<?= htmlspecialchars($categoria) ?>" <?= $filtroCategoria === $categoria ? 'selected' : '' ?>><?= htmlspecialchars($categoria) ?></option>
+        <?php endforeach; ?>
+      </select>
+
+      <select name="bairro">
+        <option value="">Todos os bairros</option>
+        <?php foreach ($bairros as $bairro): ?>
+          <option value="<?= htmlspecialchars($bairro) ?>" <?= $filtroBairro === $bairro ? 'selected' : '' ?>><?= htmlspecialchars($bairro) ?></option>
+        <?php endforeach; ?>
+      </select>
+
+      <button type="submit" class="btn-filtrar">Filtrar</button>
+      <?php if ($temFiltroAtivo): ?>
+        <a class="btn-limpar" href="paineladm.php">Limpar filtros</a>
+      <?php endif; ?>
+    </form>
+
+    <?php if (empty($ocorrencias)): ?>
+      <div class="empty-state">
+        <?= $temFiltroAtivo ? 'Nenhuma ocorrência encontrada com esses filtros.' : 'Nenhuma ocorrência registrada pelos cidadãos ainda.' ?>
       </div>
+    <?php else: ?>
       <table>
         <thead>
           <tr>
@@ -99,6 +188,7 @@ $statusInfo = [
             <th>Bairro</th>
             <th>Status</th>
             <th>Registrado em</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -111,12 +201,13 @@ $statusInfo = [
               <td class="bairro-tag"><?= htmlspecialchars($o['bairro']) ?></td>
               <td><span class="pill <?= $info['classe'] ?>"><?= $info['label'] ?></span></td>
               <td class="mono"><?= htmlspecialchars($o['criado_em']) ?></td>
+              <td><a class="btn-line" href="ocorrencia.php?id=<?= $o['id'] ?>">Ver detalhes</a></td>
             </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
-    </div>
-  <?php endif; ?>
+    <?php endif; ?>
+  </div>
 </div>
 
 </body>

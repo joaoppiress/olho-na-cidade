@@ -68,6 +68,7 @@ $statusInfo = [
           <span class="desc"><?= htmlspecialchars($o['descricao']) ?><span class="cat"><?= htmlspecialchars($o['categoria']) ?></span></span>
           <span class="pill <?= $info['classe'] ?>"><?= $info['label'] ?></span>
           <span class="bairro"><?= htmlspecialchars($o['endereco']) ?></span>
+          <a class="btn-line" style="justify-self:end;" href="ocorrencia.php?id=<?= $o['id'] ?>">Ver detalhes</a>
         </div>
       <?php endforeach; ?>
     </div>

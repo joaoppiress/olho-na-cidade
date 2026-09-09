@@ -154,7 +154,7 @@ if ($logado && $_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form class="plain-form" method="POST" action="Registrar.php" enctype="multipart/form-data" novalidate>
-          <div class="hint">Logado como <strong><?= htmlspecialchars($_SESSION['usuario_nome']) ?></strong> — <a href="logout.php" style="color:var(--municipal);">sair</a></div>
+          <div class="hint">Logado como <strong><?= htmlspecialchars($_SESSION['usuario_nome']) ?></strong> — <a href="painel.php" style="color:var(--municipal);">voltar</a></div>
 
           <div class="field">
             <label for="categoria">Categoria</label>

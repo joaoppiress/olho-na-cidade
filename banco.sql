@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 23/08/2026 às 23:36
+-- Tempo de geração: 09/09/2026 às 03:33
 -- Versão do servidor: 10.4.32-MariaDB
 -- Versão do PHP: 8.2.12
 
@@ -36,6 +36,8 @@ CREATE TABLE `ocorrencias` (
   `descricao` text NOT NULL,
   `foto_path` varchar(255) DEFAULT NULL,
   `status` enum('pendente','em_analise','resolvido') NOT NULL DEFAULT 'pendente',
+  `recado_adm` text DEFAULT NULL,
+  `recado_atualizado_em` datetime DEFAULT NULL,
   `criado_em` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -43,8 +45,8 @@ CREATE TABLE `ocorrencias` (
 -- Despejando dados para a tabela `ocorrencias`
 --
 
-INSERT INTO `ocorrencias` (`id`, `usuario_id`, `categoria`, `bairro`, `endereco`, `descricao`, `foto_path`, `status`, `criado_em`) VALUES
-(1, 1, 'Vazamento de água', 'centro', 'pinheiro, 302', 'Torneira com goteira', NULL, 'pendente', '2026-08-21 14:00:30');
+INSERT INTO `ocorrencias` (`id`, `usuario_id`, `categoria`, `bairro`, `endereco`, `descricao`, `foto_path`, `status`, `recado_adm`, `recado_atualizado_em`, `criado_em`) VALUES
+(1, 1, 'Vazamento de água', 'centro', 'pinheiro, 302', 'Torneira com goteira', NULL, 'pendente', NULL, NULL, '2026-08-21 14:00:30');
 
 -- --------------------------------------------------------
 
