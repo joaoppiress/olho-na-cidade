@@ -75,6 +75,7 @@ $emAnalise  = $totaisPorStatus['em_analise'];
 $resolvidas = $totaisPorStatus['resolvido'];
 
 $temFiltroAtivo = ($filtroStatus !== '' || $filtroCategoria !== '' || $filtroBairro !== '');
+$excluida = isset($_GET['excluida']) && $_GET['excluida'] === '1';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -109,6 +110,17 @@ $temFiltroAtivo = ($filtroStatus !== '' || $filtroCategoria !== '' || $filtroBai
     font-size:12.5px; font-weight:600; color:#8A8F96; text-decoration:none; padding:9px 6px;
   }
   .filter-row .btn-limpar:hover{ color:#454B52; }
+  .confirm-box{
+    margin-bottom:20px; padding:14px 16px; border-radius:5px;
+    background:rgba(62,156,111,0.1); border:1px solid rgba(62,156,111,0.35); color:#276B49;
+    font-size:13.5px;
+  }
+  .btn-excluir{
+    border:1px solid #B23D1F; background:#fff; color:#B23D1F; padding:10px 14px; border-radius:4px;
+    font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; cursor:pointer;
+    font-family:'Inter', sans-serif;
+  }
+  .linha-acoes{ display:flex; gap:8px; align-items:center; justify-content:flex-end; }
 </style>
 </head>
 <body style="background:var(--concrete);">
@@ -144,6 +156,10 @@ $temFiltroAtivo = ($filtroStatus !== '' || $filtroCategoria !== '' || $filtroBai
       <div class="label">Resolvidas</div>
     </div>
   </div>
+
+  <?php if ($excluida): ?>
+    <div class="confirm-box">✓ Ocorrência excluída com sucesso.</div>
+  <?php endif; ?>
 
   <div class="admin-table-wrap">
     <form class="filter-row" method="get" action="paineladm.php">
@@ -201,7 +217,15 @@ $temFiltroAtivo = ($filtroStatus !== '' || $filtroCategoria !== '' || $filtroBai
               <td class="bairro-tag"><?= htmlspecialchars($o['bairro']) ?></td>
               <td><span class="pill <?= $info['classe'] ?>"><?= $info['label'] ?></span></td>
               <td class="mono"><?= htmlspecialchars($o['criado_em']) ?></td>
-              <td><a class="btn-line" href="ocorrencia.php?id=<?= $o['id'] ?>">Ver detalhes</a></td>
+              <td>
+                <div class="linha-acoes">
+                  <a class="btn-line" href="ocorrencia.php?id=<?= $o['id'] ?>">Ver detalhes</a>
+                  <form method="POST" action="excluir.php" onsubmit="return confirm('Tem certeza que deseja excluir a ocorrência #<?= str_pad($o['id'], 4, '0', STR_PAD_LEFT) ?>? Essa ação não pode ser desfeita.');">
+                    <input type="hidden" name="id" value="<?= $o['id'] ?>">
+                    <button class="btn-excluir" type="submit">Excluir</button>
+                  </form>
+                </div>
+              </td>
             </tr>
           <?php endforeach; ?>
         </tbody>

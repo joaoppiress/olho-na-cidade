@@ -53,6 +53,7 @@ $statusInfo = [
 ];
 $info = $statusInfo[$o['status']];
 $recadoSalvo = isset($_GET['recado']) && $_GET['recado'] === '1';
+$podeExcluir = $ehAdmin || $o['status'] === 'pendente';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -92,6 +93,14 @@ $recadoSalvo = isset($_GET['recado']) && $_GET['recado'] === '1';
     margin-bottom:20px; padding:14px 16px; border-radius:5px;
     background:rgba(62,156,111,0.1); border:1px solid rgba(62,156,111,0.35); color:#276B49;
     font-size:13.5px;
+  }
+  .excluir-box{ background:#fff; border:1px solid rgba(232,90,50,0.35); border-radius:6px; padding:22px 24px; }
+  .excluir-box h2{ font-size:15px; font-weight:700; margin:0 0 8px; color:#B23D1F; }
+  .excluir-box p{ font-size:13.5px; color:#8A8F96; line-height:1.55; margin:0 0 14px; }
+  .btn-excluir{
+    border:1px solid #B23D1F; background:#B23D1F; color:#fff; padding:10px 18px; border-radius:4px;
+    font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; cursor:pointer;
+    font-family:'Inter', sans-serif;
   }
 </style>
 </head>
@@ -182,6 +191,23 @@ $recadoSalvo = isset($_GET['recado']) && $_GET['recado'] === '1';
           <span class="form-note">O cidadão verá esse recado ao abrir a ocorrência.</span>
         </div>
       </form>
+    <?php endif; ?>
+  </div>
+
+  <div class="excluir-box">
+    <h2>Excluir ocorrência</h2>
+    <?php if ($podeExcluir): ?>
+      <p>
+        <?= $ehAdmin
+            ? 'A ocorrência será removida definitivamente do sistema, junto com a foto enviada pelo cidadão.'
+            : 'Registrou por engano? Enquanto a prefeitura não começar a análise, você pode excluir esta ocorrência. A ação não pode ser desfeita.' ?>
+      </p>
+      <form method="POST" action="excluir.php" onsubmit="return confirm('Tem certeza que deseja excluir esta ocorrência? Essa ação não pode ser desfeita.');">
+        <input type="hidden" name="id" value="<?= $o['id'] ?>">
+        <button class="btn-excluir" type="submit">Excluir ocorrência</button>
+      </form>
+    <?php else: ?>
+      <p>Esta ocorrência já está em análise pela prefeitura e não pode mais ser excluída.</p>
     <?php endif; ?>
   </div>
 </div>

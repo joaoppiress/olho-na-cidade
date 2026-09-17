@@ -12,6 +12,8 @@ $stmt = $pdo->prepare('SELECT id, categoria, bairro, endereco, descricao, status
 $stmt->execute([$_SESSION['usuario_id']]);
 $ocorrencias = $stmt->fetchAll();
 
+$excluida = isset($_GET['excluida']) && $_GET['excluida'] === '1';
+
 $statusInfo = [
     'pendente'    => ['label' => 'Pendente',    'classe' => 'pendente'],
     'em_analise'  => ['label' => 'Em análise',  'classe' => 'analise'],
@@ -36,6 +38,17 @@ $statusInfo = [
   .painel-actions{ display:flex; gap:10px; }
   .btn-line{ border:1px solid var(--line); background:#fff; color:#454B52; padding:10px 16px; border-radius:4px; font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; text-decoration:none; }
   .empty-state{ background:#fff; border:1px dashed var(--line); border-radius:6px; padding:40px 24px; text-align:center; color:#8A8F96; font-size:14px; }
+  .confirm-box{
+    margin-bottom:20px; padding:14px 16px; border-radius:5px;
+    background:rgba(62,156,111,0.1); border:1px solid rgba(62,156,111,0.35); color:#276B49;
+    font-size:13.5px;
+  }
+  .btn-excluir{
+    border:1px solid #B23D1F; background:#fff; color:#B23D1F; padding:10px 16px; border-radius:4px;
+    font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; cursor:pointer;
+    font-family:'Inter', sans-serif;
+  }
+  .card-acoes{ display:flex; gap:8px; justify-self:end; align-items:center; }
 </style>
 </head>
 <body style="background:var(--concrete);">
@@ -54,6 +67,10 @@ $statusInfo = [
     </div>
   </div>
 
+  <?php if ($excluida): ?>
+    <div class="confirm-box">✓ Ocorrência excluída com sucesso.</div>
+  <?php endif; ?>
+
   <?php if (empty($ocorrencias)): ?>
     <div class="empty-state">
       Você ainda não registrou nenhuma ocorrência.
@@ -68,7 +85,15 @@ $statusInfo = [
           <span class="desc"><?= htmlspecialchars($o['descricao']) ?><span class="cat"><?= htmlspecialchars($o['categoria']) ?></span></span>
           <span class="pill <?= $info['classe'] ?>"><?= $info['label'] ?></span>
           <span class="bairro"><?= htmlspecialchars($o['endereco']) ?></span>
-          <a class="btn-line" style="justify-self:end;" href="ocorrencia.php?id=<?= $o['id'] ?>">Ver detalhes</a>
+          <span class="card-acoes">
+            <a class="btn-line" href="ocorrencia.php?id=<?= $o['id'] ?>">Ver detalhes</a>
+            <?php if ($o['status'] === 'pendente'): ?>
+              <form method="POST" action="excluir.php" onsubmit="return confirm('Tem certeza que deseja excluir esta ocorrência? Essa ação não pode ser desfeita.');">
+                <input type="hidden" name="id" value="<?= $o['id'] ?>">
+                <button class="btn-excluir" type="submit">Excluir</button>
+              </form>
+            <?php endif; ?>
+          </span>
         </div>
       <?php endforeach; ?>
     </div>
