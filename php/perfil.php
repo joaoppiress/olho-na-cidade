@@ -10,13 +10,69 @@ require __DIR__ . '/config.php';
 
 $ehAdmin = (isset($_SESSION['tipo']) ? $_SESSION['tipo'] : 'cidadao') === 'admin';
 
-$stmtUsuario = $pdo->prepare('SELECT nome, email, aceite_lgpd, criado_em FROM usuarios WHERE id = ?');
+$stmtUsuario = $pdo->prepare('SELECT nome, email, senha_hash, aceite_lgpd, criado_em FROM usuarios WHERE id = ?');
 $stmtUsuario->execute([$_SESSION['usuario_id']]);
 $usuario = $stmtUsuario->fetch();
 
 if (!$usuario) {
     header('Location: logout.php');
     exit;
+}
+
+// Edição dos próprios dados (cidadão e admin)
+$errosPerfil = [];
+$dadosSalvos = isset($_GET['salvo']) && $_GET['salvo'] === '1';
+$nomeValor   = $usuario['nome'];
+$emailValor  = $usuario['email'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $nomeValor   = trim(isset($_POST['nome']) ? $_POST['nome'] : '');
+    $emailValor  = trim(isset($_POST['email']) ? $_POST['email'] : '');
+    $senhaAtual  = isset($_POST['senha_atual']) ? $_POST['senha_atual'] : '';
+    $novaSenha   = isset($_POST['nova_senha']) ? $_POST['nova_senha'] : '';
+    $confirmacao = isset($_POST['confirma_senha']) ? $_POST['confirma_senha'] : '';
+
+    if (mb_strlen($nomeValor) < 3) {
+        $errosPerfil[] = 'Informe seu nome completo (mínimo 3 caracteres).';
+    }
+    if (!filter_var($emailValor, FILTER_VALIDATE_EMAIL)) {
+        $errosPerfil[] = 'Informe um e-mail válido.';
+    }
+    if (!password_verify($senhaAtual, $usuario['senha_hash'])) {
+        $errosPerfil[] = 'Senha atual incorreta.';
+    }
+    if ($novaSenha !== '') {
+        if (mb_strlen($novaSenha) < 6) {
+            $errosPerfil[] = 'A nova senha precisa ter pelo menos 6 caracteres.';
+        }
+        if ($novaSenha !== $confirmacao) {
+            $errosPerfil[] = 'A confirmação da nova senha não confere.';
+        }
+    }
+
+    if (empty($errosPerfil) && $emailValor !== $usuario['email']) {
+        $stmtEmail = $pdo->prepare('SELECT id FROM usuarios WHERE email = ? AND id <> ?');
+        $stmtEmail->execute([$emailValor, $_SESSION['usuario_id']]);
+        if ($stmtEmail->fetch()) {
+            $errosPerfil[] = 'Esse e-mail já está sendo usado por outra conta.';
+        }
+    }
+
+    if (empty($errosPerfil)) {
+        if ($novaSenha !== '') {
+            $stmtSalva = $pdo->prepare('UPDATE usuarios SET nome = ?, email = ?, senha_hash = ? WHERE id = ?');
+            $stmtSalva->execute([$nomeValor, $emailValor, password_hash($novaSenha, PASSWORD_DEFAULT), $_SESSION['usuario_id']]);
+        } else {
+            $stmtSalva = $pdo->prepare('UPDATE usuarios SET nome = ?, email = ? WHERE id = ?');
+            $stmtSalva->execute([$nomeValor, $emailValor, $_SESSION['usuario_id']]);
+        }
+
+        $_SESSION['usuario_nome']  = $nomeValor;
+        $_SESSION['usuario_email'] = $emailValor;
+
+        header('Location: perfil.php?salvo=1');
+        exit;
+    }
 }
 
 if ($ehAdmin) {
@@ -106,6 +162,13 @@ foreach (array_slice(explode(' ', trim($usuario['nome'])), 0, 2) as $parte) {
 
   .empty-state{ background:#fff; border:1px dashed var(--line); border-radius:6px; padding:40px 24px; text-align:center; color:#8A8F96; font-size:14px; }
 
+  .edit-card{ background:#fff; border:1px solid var(--line); border-radius:6px; padding:24px 26px; margin-bottom:24px; }
+  .confirm-box{
+    margin-bottom:20px; padding:14px 16px; border-radius:5px;
+    background:rgba(62,156,111,0.1); border:1px solid rgba(62,156,111,0.35); color:#276B49;
+    font-size:13.5px;
+  }
+
   @media (max-width:520px){
     .info-row{ flex-direction:column; align-items:flex-start; }
     .info-row .value, .info-hint{ text-align:left; }
@@ -164,6 +227,56 @@ foreach (array_slice(explode(' ', trim($usuario['nome'])), 0, 2) as $parte) {
       <span class="label">Membro desde</span>
       <span class="value"><?= $membroDesde ?></span>
     </div>
+  </div>
+
+  <div class="section-label">Editar meus dados</div>
+  <div class="edit-card">
+    <?php if ($dadosSalvos): ?>
+      <div class="confirm-box">✓ Dados atualizados com sucesso.</div>
+    <?php endif; ?>
+
+    <?php if (!empty($errosPerfil)): ?>
+      <div class="error-list">
+        <ul>
+          <?php foreach ($errosPerfil as $erro): ?>
+            <li><?= htmlspecialchars($erro) ?></li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
+    <?php endif; ?>
+
+    <form class="plain-form" method="POST" action="perfil.php" novalidate>
+      <div class="field">
+        <label for="nome">Nome</label>
+        <input id="nome" name="nome" type="text" value="<?= htmlspecialchars($nomeValor) ?>" required>
+      </div>
+
+      <div class="field">
+        <label for="email">E-mail</label>
+        <input id="email" name="email" type="email" value="<?= htmlspecialchars($emailValor) ?>" required>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="nova_senha">Nova senha (opcional)</label>
+          <input id="nova_senha" name="nova_senha" type="password" placeholder="Deixe em branco para manter" minlength="6">
+        </div>
+        <div class="field">
+          <label for="confirma_senha">Confirmar nova senha</label>
+          <input id="confirma_senha" name="confirma_senha" type="password" placeholder="Repita a nova senha" minlength="6">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="senha_atual">Senha atual</label>
+        <input id="senha_atual" name="senha_atual" type="password" placeholder="Confirme com sua senha atual" required>
+      </div>
+
+      <div class="submit-row">
+        <button class="btn-solid" type="submit">Salvar alterações</button>
+        <span class="form-note">A senha atual é obrigatória para confirmar qualquer alteração.</span>
+      </div>
+    </form>
   </div>
 
   <?php if (!$ehAdmin): ?>
