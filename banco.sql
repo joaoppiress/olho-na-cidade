@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 09/09/2026 às 03:33
+-- Tempo de geração: 24/09/2026 às 23:44
 -- Versão do servidor: 10.4.32-MariaDB
 -- Versão do PHP: 8.2.12
 
@@ -46,7 +46,32 @@ CREATE TABLE `ocorrencias` (
 --
 
 INSERT INTO `ocorrencias` (`id`, `usuario_id`, `categoria`, `bairro`, `endereco`, `descricao`, `foto_path`, `status`, `recado_adm`, `recado_atualizado_em`, `criado_em`) VALUES
-(1, 1, 'Vazamento de água', 'centro', 'pinheiro, 302', 'Torneira com goteira', NULL, 'pendente', NULL, NULL, '2026-08-21 14:00:30');
+(1, 1, 'Vazamento de água', 'centro', 'pinheiro, 302', 'Torneira com goteira', NULL, 'resolvido', 'Equipe de manutenção já está indo ao local.', '2026-09-24 18:35:55', '2026-08-21 14:00:30');
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `ocorrencia_historico`
+--
+
+CREATE TABLE `ocorrencia_historico` (
+  `id` int(11) NOT NULL,
+  `ocorrencia_id` int(11) NOT NULL,
+  `ocorrencia_categoria` varchar(80) NOT NULL,
+  `status_anterior` enum('pendente','em_analise','resolvido') DEFAULT NULL,
+  `status_novo` enum('pendente','em_analise','resolvido') NOT NULL,
+  `recado` text DEFAULT NULL,
+  `admin_id` int(11) NOT NULL,
+  `admin_nome` varchar(150) NOT NULL,
+  `criado_em` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Despejando dados para a tabela `ocorrencia_historico`
+--
+
+INSERT INTO `ocorrencia_historico` (`id`, `ocorrencia_id`, `ocorrencia_categoria`, `status_anterior`, `status_novo`, `recado`, `admin_id`, `admin_nome`, `criado_em`) VALUES
+(1, 1, 'Vazamento de água', 'pendente', 'resolvido', 'Equipe de manutenção já está indo ao local.', 2, 'Administrador', '2026-09-24 18:35:55');
 
 -- --------------------------------------------------------
 
@@ -84,6 +109,14 @@ ALTER TABLE `ocorrencias`
   ADD KEY `usuario_id` (`usuario_id`);
 
 --
+-- Índices de tabela `ocorrencia_historico`
+--
+ALTER TABLE `ocorrencia_historico`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `ocorrencia_id` (`ocorrencia_id`),
+  ADD KEY `admin_id` (`admin_id`);
+
+--
 -- Índices de tabela `usuarios`
 --
 ALTER TABLE `usuarios`
@@ -98,6 +131,12 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de tabela `ocorrencias`
 --
 ALTER TABLE `ocorrencias`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT de tabela `ocorrencia_historico`
+--
+ALTER TABLE `ocorrencia_historico`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
