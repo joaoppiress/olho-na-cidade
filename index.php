@@ -11,13 +11,14 @@ $statusInfo = [
     'resolvido'  => ['label' => 'Resolvido',   'pill' => 'resolvido','tag' => 'tag-ok'],
 ];
 
-// Últimas ocorrências de todos os usuários, pro ticker do topo (mural público)
-$stmtTicker = $pdo->prepare('SELECT id, categoria, endereco, status FROM ocorrencias ORDER BY criado_em DESC LIMIT 6');
+// Últimas ocorrências pendentes de todos os usuários, pro ticker do topo (mural público)
+// Ocorrências resolvidas (ou em análise) saem da tela inicial assim que mudam de status.
+$stmtTicker = $pdo->prepare("SELECT id, categoria, endereco, status FROM ocorrencias WHERE status = 'pendente' ORDER BY criado_em DESC LIMIT 6");
 $stmtTicker->execute();
 $ocorrenciasTicker = $stmtTicker->fetchAll();
 
-// Todas as ocorrências registradas no banco, pro painel público (independe de login)
-$stmtPainel = $pdo->prepare('SELECT id, categoria, bairro, endereco, descricao, status FROM ocorrencias ORDER BY criado_em DESC LIMIT 12');
+// Ocorrências pendentes registradas no banco, pro painel público (independe de login)
+$stmtPainel = $pdo->prepare("SELECT id, categoria, bairro, endereco, descricao, status FROM ocorrencias WHERE status = 'pendente' ORDER BY criado_em DESC LIMIT 12");
 $stmtPainel->execute();
 $ocorrenciasPainel = $stmtPainel->fetchAll();
 ?>
@@ -87,7 +88,7 @@ $ocorrenciasPainel = $stmtPainel->fetchAll();
   <div class="ticker">
     <div class="ticker-track">
       <?php if (empty($ocorrenciasTicker)): ?>
-        <span>Nenhuma ocorrência registrada ainda — seja o primeiro a registrar.</span>
+        <span>Nenhuma ocorrência pendente no momento.</span>
       <?php else: ?>
         <?php $voltas = count($ocorrenciasTicker) >= 4 ? 2 : 1; ?>
         <?php for ($volta = 0; $volta < $voltas; $volta++): ?>
@@ -210,9 +211,9 @@ $ocorrenciasPainel = $stmtPainel->fetchAll();
       <div class="card-list">
         <?php if (empty($ocorrenciasPainel)): ?>
           <div class="empty-state">
-            Nenhuma ocorrência registrada ainda.
+            Nenhuma ocorrência pendente no momento.
             <?php if ($logado): ?>
-              <br><a href="php/Registrar.php" style="color:var(--municipal); font-weight:700;">Registrar a primeira</a>
+              <br><a href="php/Registrar.php" style="color:var(--municipal); font-weight:700;">Registrar uma nova ocorrência</a>
             <?php else: ?>
               <br><a href="php/login.php" style="color:var(--municipal); font-weight:700;">Entrar</a> ou <a href="php/cadastro.php" style="color:var(--municipal); font-weight:700;">criar conta</a> pra registrar
             <?php endif; ?>

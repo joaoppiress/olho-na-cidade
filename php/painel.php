@@ -46,9 +46,40 @@ $statusInfo = [
   .btn-excluir{
     border:1px solid #B23D1F; background:#fff; color:#B23D1F; padding:10px 16px; border-radius:4px;
     font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; cursor:pointer;
-    font-family:'Inter', sans-serif;
+    font-family:'Inter', sans-serif; white-space:nowrap;
   }
-  .card-acoes{ display:flex; gap:8px; justify-self:end; align-items:center; }
+
+  /* Card de ocorrência do painel — layout flexível, sem colunas fixas
+     (evita texto do endereço/descrição vazando por cima dos botões) */
+  .painel-wrap .card-list{ display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .painel-wrap .occ-card{
+    display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px;
+    background:#fff; padding:16px 20px;
+  }
+  .painel-wrap .occ-card .proto-id{ flex:0 0 auto; }
+  .painel-wrap .occ-card .desc{
+    display:flex; flex-direction:column; justify-content:center;
+    flex:1 1 180px; min-width:0;
+  }
+  .painel-wrap .occ-card .desc-text{
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .painel-wrap .occ-card .desc .cat{
+    display:block; font-size:12px; color:#8A8F96; font-weight:400; margin-top:2px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .painel-wrap .occ-card .pill{ flex:0 0 auto; }
+  .painel-wrap .occ-card .bairro{
+    flex:1 1 100%; order:5; text-align:left; font-size:12.5px; color:#5B6169;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .painel-wrap .occ-card .bairro::before{ content:'📍 '; }
+  .card-acoes{ display:flex; gap:8px; align-items:center; flex:0 0 auto; margin-left:auto; }
+
+  @media (max-width:520px){
+    .painel-wrap .occ-card{ padding:14px 16px; }
+    .card-acoes{ margin-left:0; flex-basis:100%; order:4; }
+  }
 </style>
 </head>
 <body style="background:var(--concrete);">
@@ -82,7 +113,10 @@ $statusInfo = [
         <?php $info = $statusInfo[$o['status']]; ?>
         <div class="occ-card">
           <span class="proto-id mono">#<?= str_pad($o['id'], 4, '0', STR_PAD_LEFT) ?></span>
-          <span class="desc"><?= htmlspecialchars($o['descricao']) ?><span class="cat"><?= htmlspecialchars($o['categoria']) ?></span></span>
+          <span class="desc">
+            <span class="desc-text"><?= htmlspecialchars($o['descricao']) ?></span>
+            <span class="cat"><?= htmlspecialchars($o['categoria']) ?></span>
+          </span>
           <span class="pill <?= $info['classe'] ?>"><?= $info['label'] ?></span>
           <span class="bairro"><?= htmlspecialchars($o['endereco']) ?></span>
           <span class="card-acoes">

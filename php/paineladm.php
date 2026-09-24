@@ -18,13 +18,16 @@ $statusInfo = [
 $categorias = $pdo->query('SELECT DISTINCT categoria FROM ocorrencias ORDER BY categoria')->fetchAll(PDO::FETCH_COLUMN);
 $bairros    = $pdo->query('SELECT DISTINCT bairro FROM ocorrencias ORDER BY bairro')->fetchAll(PDO::FETCH_COLUMN);
 
-// Filtros vindos da URL (GET), validados contra listas conhecidas
-$filtroStatus    = isset($_GET['status']) ? trim($_GET['status']) : '';
+// Filtros vindos da URL (GET), validados contra listas conhecidas.
+// Sem filtro explícito na URL, o painel mostra só as pendentes por padrão
+// (em análise e resolvidas saem da lista principal; use o filtro "Todos os
+// status" ou o Histórico de resoluções para consultá-las).
+$filtroStatus    = isset($_GET['status']) ? trim($_GET['status']) : 'pendente';
 $filtroCategoria = isset($_GET['categoria']) ? trim($_GET['categoria']) : '';
 $filtroBairro    = isset($_GET['bairro']) ? trim($_GET['bairro']) : '';
 
-if (!array_key_exists($filtroStatus, $statusInfo)) {
-    $filtroStatus = '';
+if ($filtroStatus !== '' && !array_key_exists($filtroStatus, $statusInfo)) {
+    $filtroStatus = 'pendente';
 }
 if (!in_array($filtroCategoria, $categorias, true)) {
     $filtroCategoria = '';
@@ -74,7 +77,7 @@ $pendentes  = $totaisPorStatus['pendente'];
 $emAnalise  = $totaisPorStatus['em_analise'];
 $resolvidas = $totaisPorStatus['resolvido'];
 
-$temFiltroAtivo = ($filtroStatus !== '' || $filtroCategoria !== '' || $filtroBairro !== '');
+$temFiltroAtivo = ($filtroStatus !== 'pendente' || $filtroCategoria !== '' || $filtroBairro !== '');
 $excluida = isset($_GET['excluida']) && $_GET['excluida'] === '1';
 ?>
 <!DOCTYPE html>
@@ -129,9 +132,10 @@ $excluida = isset($_GET['excluida']) && $_GET['excluida'] === '1';
   <div class="painel-top">
     <div>
       <h1>Painel administrativo</h1>
-      <div class="sub">Olá, <?= htmlspecialchars($_SESSION['usuario_nome']) ?> · todas as ocorrências dos cidadãos</div>
+      <div class="sub">Olá, <?= htmlspecialchars($_SESSION['usuario_nome']) ?> · mostrando apenas as ocorrências pendentes por padrão</div>
     </div>
     <div class="painel-actions">
+      <a class="btn-line" href="historico.php">Histórico de resoluções</a>
       <a class="btn-line" href="perfil.php">Meu perfil</a>
       <a class="btn-line" href="../index.php">&larr; Início</a>
       <a class="btn-line" href="logout.php">Sair</a>
@@ -192,7 +196,7 @@ $excluida = isset($_GET['excluida']) && $_GET['excluida'] === '1';
 
     <?php if (empty($ocorrencias)): ?>
       <div class="empty-state">
-        <?= $temFiltroAtivo ? 'Nenhuma ocorrência encontrada com esses filtros.' : 'Nenhuma ocorrência registrada pelos cidadãos ainda.' ?>
+        <?= $temFiltroAtivo ? 'Nenhuma ocorrência encontrada com esses filtros.' : 'Nenhuma ocorrência pendente no momento. Bom trabalho! Consulte "Todos os status" ou o Histórico de resoluções para ver as demais.' ?>
       </div>
     <?php else: ?>
       <table>

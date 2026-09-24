@@ -18,17 +18,15 @@ if ($id <= 0) {
     render_mensagem('Ocorrência inválida', ['O identificador informado não é válido.'], 'erro', $voltarHref, 'Voltar');
 }
 
-// Admin registra ou atualiza o recado
-if ($ehAdmin && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $recado = trim(isset($_POST['recado']) ? $_POST['recado'] : '');
+$statusInfo = [
+    'pendente'   => ['label' => 'Pendente',   'classe' => 'pendente'],
+    'em_analise' => ['label' => 'Em análise', 'classe' => 'analise'],
+    'resolvido'  => ['label' => 'Resolvido',  'classe' => 'resolvido'],
+];
 
-    $stmtAtualiza = $pdo->prepare('UPDATE ocorrencias SET recado_adm = ?, recado_atualizado_em = NOW() WHERE id = ?');
-    $stmtAtualiza->execute([$recado === '' ? null : $recado, $id]);
-
-    header('Location: ocorrencia.php?id=' . $id . '&recado=1');
-    exit;
-}
-
+// Busca a ocorrência antes de qualquer coisa: tanto para exibir a página
+// quanto para saber o status/recado ANTERIORES (necessário para registrar
+// no histórico exatamente o que mudou).
 $stmt = $pdo->prepare('
     SELECT o.*, u.nome AS nome_cidadao, u.email AS email_cidadao
     FROM ocorrencias o
@@ -46,11 +44,46 @@ if (!$ehAdmin && (int) $o['usuario_id'] !== (int) $_SESSION['usuario_id']) {
     render_mensagem('Acesso não permitido', ['Você só pode visualizar as suas próprias ocorrências.'], 'erro', $voltarHref, 'Voltar');
 }
 
-$statusInfo = [
-    'pendente'   => ['label' => 'Pendente',   'classe' => 'pendente'],
-    'em_analise' => ['label' => 'Em análise', 'classe' => 'analise'],
-    'resolvido'  => ['label' => 'Resolvido',  'classe' => 'resolvido'],
-];
+// Admin atualiza status e/ou recado
+if ($ehAdmin && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $statusAnterior = $o['status'];
+    $recadoAnterior = $o['recado_adm'];
+
+    $novoStatus = isset($_POST['status']) ? trim($_POST['status']) : $statusAnterior;
+    if (!array_key_exists($novoStatus, $statusInfo)) {
+        $novoStatus = $statusAnterior;
+    }
+    $novoRecado = trim(isset($_POST['recado']) ? $_POST['recado'] : '');
+    $novoRecado = $novoRecado === '' ? null : $novoRecado;
+
+    $statusMudou = $novoStatus !== $statusAnterior;
+    $recadoMudou = $novoRecado !== $recadoAnterior;
+
+    if ($statusMudou || $recadoMudou) {
+        $stmtAtualiza = $pdo->prepare('UPDATE ocorrencias SET status = ?, recado_adm = ?, recado_atualizado_em = NOW() WHERE id = ?');
+        $stmtAtualiza->execute([$novoStatus, $novoRecado, $id]);
+
+        // Registra a alteração no histórico para fins de controle e auditoria
+        $stmtHistorico = $pdo->prepare('
+            INSERT INTO ocorrencia_historico
+                (ocorrencia_id, ocorrencia_categoria, status_anterior, status_novo, recado, admin_id, admin_nome)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ');
+        $stmtHistorico->execute([
+            $id,
+            $o['categoria'],
+            $statusAnterior,
+            $novoStatus,
+            $novoRecado,
+            $_SESSION['usuario_id'],
+            $_SESSION['usuario_nome'],
+        ]);
+    }
+
+    header('Location: ocorrencia.php?id=' . $id . '&recado=1');
+    exit;
+}
+
 $info = $statusInfo[$o['status']];
 $recadoSalvo = isset($_GET['recado']) && $_GET['recado'] === '1';
 $podeExcluir = $ehAdmin || $o['status'] === 'pendente';
@@ -114,13 +147,16 @@ $podeExcluir = $ehAdmin || $o['status'] === 'pendente';
     </div>
     <div class="painel-actions">
       <a class="btn-line" href="<?= htmlspecialchars($voltarHref) ?>">&larr; Voltar</a>
+      <?php if ($ehAdmin): ?>
+        <a class="btn-line" href="historico.php?ocorrencia=<?= $o['id'] ?>">Histórico</a>
+      <?php endif; ?>
       <a class="btn-line" href="perfil.php">Meu perfil</a>
       <a class="btn-line" href="logout.php">Sair</a>
     </div>
   </div>
 
   <?php if ($recadoSalvo): ?>
-    <div class="confirm-box">✓ Recado salvo com sucesso.</div>
+    <div class="confirm-box">✓ Alterações salvas com sucesso.</div>
   <?php endif; ?>
 
   <div class="detail-card">
@@ -183,12 +219,20 @@ $podeExcluir = $ehAdmin || $o['status'] === 'pendente';
     <?php if ($ehAdmin): ?>
       <form class="plain-form" method="POST" action="ocorrencia.php?id=<?= $o['id'] ?>" style="margin-top:<?= empty($o['recado_adm']) ? '0' : '18px' ?>;">
         <div class="field">
+          <label for="status">Status da ocorrência</label>
+          <select id="status" name="status">
+            <?php foreach ($statusInfo as $valor => $infoStatus): ?>
+              <option value="<?= htmlspecialchars($valor) ?>" <?= $o['status'] === $valor ? 'selected' : '' ?>><?= htmlspecialchars($infoStatus['label']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="field">
           <label for="recado">Deixar recado para o cidadão</label>
           <textarea id="recado" name="recado" placeholder="Ex.: Equipe de manutenção já foi acionada e deve atender em até 5 dias úteis."><?= htmlspecialchars(isset($o['recado_adm']) ? $o['recado_adm'] : '') ?></textarea>
         </div>
         <div class="submit-row">
-          <button class="btn-solid" type="submit">Salvar recado</button>
-          <span class="form-note">O cidadão verá esse recado ao abrir a ocorrência.</span>
+          <button class="btn-solid" type="submit">Salvar alterações</button>
+          <span class="form-note">O cidadão verá o status e o recado ao abrir a ocorrência. Toda alteração fica registrada no histórico.</span>
         </div>
       </form>
     <?php endif; ?>
