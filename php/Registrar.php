@@ -14,6 +14,17 @@ $enderecoValor  = '';
 $descricaoValor = '';
 
 if ($logado && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Se o arquivo enviado passar do post_max_size do PHP, o servidor descarta
+    // TUDO ($_POST e $_FILES ficam vazios) antes mesmo do código rodar — sem
+    // isso, o usuário só veria "categoria obrigatória" e acharia que o site
+    // travou ao anexar foto. Detecta esse caso e avisa o motivo real, sem
+    // validar o resto do formulário (que também chegou vazio).
+    $requisicaoTruncada = empty($_POST) && empty($_FILES) && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0;
+
+    if ($requisicaoTruncada) {
+        $erros[] = 'A foto enviada é maior do que o servidor aceita. Escolha uma imagem menor (até 5MB) e tente novamente.';
+    } else {
+
     $categoriaValor = trim(isset($_POST['categoria']) ? $_POST['categoria'] : '');
     $bairroValor    = trim(isset($_POST['bairro']) ? $_POST['bairro'] : '');
     $enderecoValor  = trim(isset($_POST['endereco']) ? $_POST['endereco'] : '');
@@ -35,19 +46,31 @@ if ($logado && $_SERVER['REQUEST_METHOD'] === 'POST') {
     // Upload de foto — opcional
     $fotoPath = null;
     if (!empty($_FILES['foto']['name']) && $_FILES['foto']['error'] !== UPLOAD_ERR_NO_FILE) {
-        if ($_FILES['foto']['error'] !== UPLOAD_ERR_OK) {
+        if ($_FILES['foto']['error'] === UPLOAD_ERR_INI_SIZE || $_FILES['foto']['error'] === UPLOAD_ERR_FORM_SIZE) {
+            $erros[] = 'A foto é muito grande para o servidor aceitar. Envie uma imagem de até 5MB.';
+        } elseif ($_FILES['foto']['error'] !== UPLOAD_ERR_OK) {
             $erros[] = 'Não foi possível enviar a foto. Tente novamente.';
         } else {
-            $tiposPermitidos = ['image/jpeg', 'image/png', 'image/webp'];
-            $tipoReal = mime_content_type($_FILES['foto']['tmp_name']);
+            $tiposPermitidos = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
 
-            if (!in_array($tipoReal, $tiposPermitidos, true)) {
+            // Detecta o tipo real do arquivo pelo conteúdo (não confia só na extensão).
+            // Usa finfo quando disponível; se a extensão fileinfo não estiver
+            // habilitada no PHP, cai para mime_content_type como alternativa.
+            $tipoReal = false;
+            if (function_exists('finfo_open')) {
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $tipoReal = finfo_file($finfo, $_FILES['foto']['tmp_name']);
+                finfo_close($finfo);
+            } elseif (function_exists('mime_content_type')) {
+                $tipoReal = mime_content_type($_FILES['foto']['tmp_name']);
+            }
+
+            if ($tipoReal === false || !array_key_exists($tipoReal, $tiposPermitidos)) {
                 $erros[] = 'A foto precisa ser JPG, PNG ou WEBP.';
             } elseif ($_FILES['foto']['size'] > 5 * 1024 * 1024) {
                 $erros[] = 'A foto precisa ter até 5MB.';
             } else {
-                $extensoes = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-                $nomeArquivo = uniqid('ocorrencia_', true) . '.' . $extensoes[$tipoReal];
+                $nomeArquivo = uniqid('ocorrencia_', true) . '.' . $tiposPermitidos[$tipoReal];
                 $pastaUploads = __DIR__ . '/uploads';
 
                 if (!is_dir($pastaUploads)) {
@@ -59,7 +82,7 @@ if ($logado && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (move_uploaded_file($_FILES['foto']['tmp_name'], $destino)) {
                     $fotoPath = 'uploads/' . $nomeArquivo;
                 } else {
-                    $erros[] = 'Não foi possível salvar a foto no servidor.';
+                    $erros[] = 'Não foi possível salvar a foto no servidor. Verifique a permissão da pasta "php/uploads".';
                 }
             }
         }
@@ -85,6 +108,8 @@ if ($logado && $_SERVER['REQUEST_METHOD'] === 'POST') {
         // limpa os campos após sucesso
         $categoriaValor = $bairroValor = $enderecoValor = $descricaoValor = '';
     }
+
+    } // fim do else ($requisicaoTruncada)
 }
 ?>
 <!DOCTYPE html>
@@ -184,8 +209,13 @@ if ($logado && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
           <div class="field">
             <label for="foto">Evidência fotográfica (opcional)</label>
-            <label class="dropzone" for="foto">Clique para selecionar uma foto do problema</label>
+            <label class="dropzone" for="foto" id="dropzone-label">Clique para selecionar uma foto do problema</label>
             <input class="file-input" id="foto" name="foto" type="file" accept="image/jpeg,image/png,image/webp">
+            <div id="foto-preview-wrap" style="display:none; margin-top:12px;">
+              <img id="foto-preview" src="" alt="Pré-visualização da foto" style="max-width:180px; max-height:180px; border-radius:6px; border:1px solid var(--line); display:block;">
+              <button type="button" id="foto-remover" style="margin-top:8px; background:none; border:none; color:#B23D1F; font-size:12.5px; font-weight:600; cursor:pointer; padding:0;">Remover foto</button>
+            </div>
+            <div id="foto-erro" style="display:none; margin-top:8px; font-size:12.5px; color:#B23D1F;"></div>
           </div>
 
           <div class="submit-row">
@@ -194,6 +224,63 @@ if ($logado && $_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
         </form>
       </div>
+
+      <script>
+        (function () {
+          var input       = document.getElementById('foto');
+          var dropzone     = document.getElementById('dropzone-label');
+          var previewWrap  = document.getElementById('foto-preview-wrap');
+          var preview      = document.getElementById('foto-preview');
+          var erroBox      = document.getElementById('foto-erro');
+          var removerBtn   = document.getElementById('foto-remover');
+          var textoOriginal = dropzone.textContent;
+          var TAMANHO_MAX  = 5 * 1024 * 1024;
+
+          function limpar() {
+            input.value = '';
+            dropzone.textContent = textoOriginal;
+            previewWrap.style.display = 'none';
+            preview.src = '';
+            erroBox.style.display = 'none';
+          }
+
+          input.addEventListener('change', function () {
+            erroBox.style.display = 'none';
+
+            var arquivo = input.files && input.files[0];
+            if (!arquivo) {
+              limpar();
+              return;
+            }
+
+            var tiposAceitos = ['image/jpeg', 'image/png', 'image/webp'];
+            if (tiposAceitos.indexOf(arquivo.type) === -1) {
+              erroBox.textContent = 'Formato não aceito. Envie uma foto JPG, PNG ou WEBP.';
+              erroBox.style.display = 'block';
+              limpar();
+              return;
+            }
+            if (arquivo.size > TAMANHO_MAX) {
+              erroBox.textContent = 'Essa foto tem ' + (arquivo.size / (1024 * 1024)).toFixed(1) + 'MB — o limite é 5MB.';
+              erroBox.style.display = 'block';
+              limpar();
+              return;
+            }
+
+            var tamanhoMb = (arquivo.size / (1024 * 1024)).toFixed(1);
+            dropzone.textContent = '✓ ' + arquivo.name + ' (' + tamanhoMb + 'MB) — clique para trocar';
+
+            var leitor = new FileReader();
+            leitor.onload = function (e) {
+              preview.src = e.target.result;
+              previewWrap.style.display = 'block';
+            };
+            leitor.readAsDataURL(arquivo);
+          });
+
+          removerBtn.addEventListener('click', limpar);
+        })();
+      </script>
 
     <?php endif; ?>
   </div>
