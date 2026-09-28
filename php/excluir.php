@@ -22,7 +22,12 @@ if ($id <= 0) {
     render_mensagem('Ocorrência inválida', ['O identificador informado não é válido.'], 'erro', $voltarHref, 'Voltar');
 }
 
-$stmt = $pdo->prepare('SELECT id, usuario_id, status, foto_path FROM ocorrencias WHERE id = ?');
+$stmt = $pdo->prepare('
+    SELECT o.*, u.nome AS nome_cidadao
+    FROM ocorrencias o
+    JOIN usuarios u ON o.usuario_id = u.id
+    WHERE o.id = ?
+');
 $stmt->execute([$id]);
 $o = $stmt->fetch();
 
@@ -43,6 +48,33 @@ if (!$ehAdmin) {
             'Voltar à ocorrência'
         );
     }
+}
+
+// Guarda uma cópia da ocorrência antes de excluir, para controle e auditoria.
+// Só registra quando é o administrador quem exclui — exclusão feita pelo
+// próprio cidadão (de uma ocorrência ainda pendente) não entra no histórico.
+if ($ehAdmin) {
+    $stmtLog = $pdo->prepare('
+        INSERT INTO ocorrencia_excluida
+            (ocorrencia_id_original, usuario_id, usuario_nome, categoria, bairro, endereco, descricao,
+             foto_path, status_no_momento, criado_em_original, excluido_por_id, excluido_por_nome, excluido_por_tipo)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ');
+    $stmtLog->execute([
+        $o['id'],
+        $o['usuario_id'],
+        $o['nome_cidadao'],
+        $o['categoria'],
+        $o['bairro'],
+        $o['endereco'],
+        $o['descricao'],
+        $o['foto_path'],
+        $o['status'],
+        $o['criado_em'],
+        $_SESSION['usuario_id'],
+        $_SESSION['usuario_nome'],
+        'admin',
+    ]);
 }
 
 $stmtExclui = $pdo->prepare('DELETE FROM ocorrencias WHERE id = ?');
