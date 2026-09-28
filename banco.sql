@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.2.0
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 24/09/2026 às 23:44
--- Versão do servidor: 10.4.32-MariaDB
--- Versão do PHP: 8.2.12
+-- Tempo de geração: 28-Set-2026 às 22:48
+-- Versão do servidor: 10.4.25-MariaDB
+-- versão do PHP: 8.1.10
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -24,50 +24,74 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Estrutura para tabela `ocorrencias`
+-- Estrutura da tabela `ocorrencias`
 --
 
 CREATE TABLE `ocorrencias` (
   `id` int(11) NOT NULL,
   `usuario_id` int(11) NOT NULL,
-  `categoria` varchar(80) NOT NULL,
-  `bairro` varchar(120) NOT NULL,
-  `endereco` varchar(200) NOT NULL,
-  `descricao` text NOT NULL,
-  `foto_path` varchar(255) DEFAULT NULL,
-  `status` enum('pendente','em_analise','resolvido') NOT NULL DEFAULT 'pendente',
-  `recado_adm` text DEFAULT NULL,
+  `categoria` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `bairro` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `endereco` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `descricao` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `foto_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` enum('pendente','em_analise','resolvido') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pendente',
+  `recado_adm` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `recado_atualizado_em` datetime DEFAULT NULL,
   `criado_em` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- --------------------------------------------------------
+
 --
--- Despejando dados para a tabela `ocorrencias`
+-- Estrutura da tabela `ocorrencia_excluida`
 --
 
-INSERT INTO `ocorrencias` (`id`, `usuario_id`, `categoria`, `bairro`, `endereco`, `descricao`, `foto_path`, `status`, `recado_adm`, `recado_atualizado_em`, `criado_em`) VALUES
-(1, 1, 'Vazamento de água', 'centro', 'pinheiro, 302', 'Torneira com goteira', NULL, 'resolvido', 'Equipe de manutenção já está indo ao local.', '2026-09-24 18:35:55', '2026-08-21 14:00:30');
+CREATE TABLE `ocorrencia_excluida` (
+  `id` int(11) NOT NULL,
+  `ocorrencia_id_original` int(11) NOT NULL,
+  `usuario_id` int(11) NOT NULL,
+  `usuario_nome` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `categoria` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `bairro` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `endereco` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `descricao` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `foto_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status_no_momento` enum('pendente','em_analise','resolvido') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `criado_em_original` datetime NOT NULL,
+  `excluido_por_id` int(11) NOT NULL,
+  `excluido_por_nome` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `excluido_por_tipo` enum('cidadao','admin') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `excluido_em` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Extraindo dados da tabela `ocorrencia_excluida`
+--
+
+INSERT INTO `ocorrencia_excluida` (`id`, `ocorrencia_id_original`, `usuario_id`, `usuario_nome`, `categoria`, `bairro`, `endereco`, `descricao`, `foto_path`, `status_no_momento`, `criado_em_original`, `excluido_por_id`, `excluido_por_nome`, `excluido_por_tipo`, `excluido_em`) VALUES
+(1, 1, 1, 'Katatau', 'Vazamento de água', 'centro', 'pinheiro, 302', 'Torneira com goteira', NULL, 'resolvido', '2026-08-21 14:00:30', 2, 'Administrador', 'admin', '2026-09-28 17:45:36');
 
 -- --------------------------------------------------------
 
 --
--- Estrutura para tabela `ocorrencia_historico`
+-- Estrutura da tabela `ocorrencia_historico`
 --
 
 CREATE TABLE `ocorrencia_historico` (
   `id` int(11) NOT NULL,
   `ocorrencia_id` int(11) NOT NULL,
-  `ocorrencia_categoria` varchar(80) NOT NULL,
-  `status_anterior` enum('pendente','em_analise','resolvido') DEFAULT NULL,
-  `status_novo` enum('pendente','em_analise','resolvido') NOT NULL,
-  `recado` text DEFAULT NULL,
+  `ocorrencia_categoria` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status_anterior` enum('pendente','em_analise','resolvido') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status_novo` enum('pendente','em_analise','resolvido') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `recado` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `admin_id` int(11) NOT NULL,
-  `admin_nome` varchar(150) NOT NULL,
+  `admin_nome` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
   `criado_em` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Despejando dados para a tabela `ocorrencia_historico`
+-- Extraindo dados da tabela `ocorrencia_historico`
 --
 
 INSERT INTO `ocorrencia_historico` (`id`, `ocorrencia_id`, `ocorrencia_categoria`, `status_anterior`, `status_novo`, `recado`, `admin_id`, `admin_nome`, `criado_em`) VALUES
@@ -76,21 +100,21 @@ INSERT INTO `ocorrencia_historico` (`id`, `ocorrencia_id`, `ocorrencia_categoria
 -- --------------------------------------------------------
 
 --
--- Estrutura para tabela `usuarios`
+-- Estrutura da tabela `usuarios`
 --
 
 CREATE TABLE `usuarios` (
   `id` int(11) NOT NULL,
-  `nome` varchar(150) NOT NULL,
-  `email` varchar(150) NOT NULL,
-  `senha_hash` varchar(255) NOT NULL,
+  `nome` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `senha_hash` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `aceite_lgpd` tinyint(1) NOT NULL DEFAULT 0,
   `criado_em` datetime NOT NULL DEFAULT current_timestamp(),
-  `tipo` enum('cidadao','admin') NOT NULL DEFAULT 'cidadao'
+  `tipo` enum('cidadao','admin') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'cidadao'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Despejando dados para a tabela `usuarios`
+-- Extraindo dados da tabela `usuarios`
 --
 
 INSERT INTO `usuarios` (`id`, `nome`, `email`, `senha_hash`, `aceite_lgpd`, `criado_em`, `tipo`) VALUES
@@ -102,14 +126,22 @@ INSERT INTO `usuarios` (`id`, `nome`, `email`, `senha_hash`, `aceite_lgpd`, `cri
 --
 
 --
--- Índices de tabela `ocorrencias`
+-- Índices para tabela `ocorrencias`
 --
 ALTER TABLE `ocorrencias`
   ADD PRIMARY KEY (`id`),
   ADD KEY `usuario_id` (`usuario_id`);
 
 --
--- Índices de tabela `ocorrencia_historico`
+-- Índices para tabela `ocorrencia_excluida`
+--
+ALTER TABLE `ocorrencia_excluida`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `ocorrencia_id_original` (`ocorrencia_id_original`),
+  ADD KEY `usuario_id` (`usuario_id`);
+
+--
+-- Índices para tabela `ocorrencia_historico`
 --
 ALTER TABLE `ocorrencia_historico`
   ADD PRIMARY KEY (`id`),
@@ -117,14 +149,14 @@ ALTER TABLE `ocorrencia_historico`
   ADD KEY `admin_id` (`admin_id`);
 
 --
--- Índices de tabela `usuarios`
+-- Índices para tabela `usuarios`
 --
 ALTER TABLE `usuarios`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `email` (`email`);
 
 --
--- AUTO_INCREMENT para tabelas despejadas
+-- AUTO_INCREMENT de tabelas despejadas
 --
 
 --
@@ -132,6 +164,12 @@ ALTER TABLE `usuarios`
 --
 ALTER TABLE `ocorrencias`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT de tabela `ocorrencia_excluida`
+--
+ALTER TABLE `ocorrencia_excluida`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de tabela `ocorrencia_historico`
@@ -146,11 +184,11 @@ ALTER TABLE `usuarios`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- Restrições para tabelas despejadas
+-- Restrições para despejos de tabelas
 --
 
 --
--- Restrições para tabelas `ocorrencias`
+-- Limitadores para a tabela `ocorrencias`
 --
 ALTER TABLE `ocorrencias`
   ADD CONSTRAINT `ocorrencias_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`);
