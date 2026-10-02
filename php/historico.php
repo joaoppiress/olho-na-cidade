@@ -91,9 +91,11 @@ $temFiltroAtivo = ($filtroStatus !== '' || $filtroOcorrencia > 0);
   .transicao{ display:flex; align-items:center; gap:6px; font-size:12.5px; white-space:nowrap; }
   .transicao .seta{ color:#8A8F96; }
   .transicao .sem-anterior{ color:#8A8F96; font-style:italic; }
-  .recado-cel{ max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; color:#454B52; }
+  .recado-cel{ max-width:320px; min-width:200px; white-space:normal; overflow-wrap:break-word; font-size:13px; color:#454B52; line-height:1.4; }
   .recado-cel.vazio{ color:#8A8F96; font-style:italic; }
   .ocorrencia-removida{ font-size:11.5px; color:#B23D1F; display:block; margin-top:2px; }
+  .data-cel{ white-space:nowrap; font-size:12.5px; }
+  .data-cel .hora{ color:#8A8F96; }
 </style>
 </head>
 <body style="background:var(--concrete);">
@@ -182,12 +184,16 @@ $temFiltroAtivo = ($filtroStatus !== '' || $filtroOcorrencia > 0);
                 </div>
               </td>
               <td>
-                <div class="recado-cel <?= $temRecado ? '' : 'vazio' ?>" title="<?= $temRecado ? htmlspecialchars($h['recado']) : '' ?>">
-                  <?= $temRecado ? htmlspecialchars($h['recado']) : 'Sem recado nesta alteração' ?>
+                <div class="recado-cel <?= $temRecado ? '' : 'vazio' ?>">
+                  <?= $temRecado ? nl2br(htmlspecialchars($h['recado'])) : 'Sem recado nesta alteração' ?>
                 </div>
               </td>
               <td><?= htmlspecialchars($h['admin_nome']) ?></td>
-              <td class="mono"><?= htmlspecialchars($h['criado_em']) ?></td>
+              <?php $dataHora = new DateTime($h['criado_em']); ?>
+              <td class="data-cel">
+                <?= $dataHora->format('d/m/Y') ?><br>
+                <span class="hora"><?= $dataHora->format('H:i') ?></span>
+              </td>
             </tr>
           <?php endforeach; ?>
         </tbody>
