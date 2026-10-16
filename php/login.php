@@ -63,6 +63,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="hint" style="color:#276B49; margin-bottom:14px;">✓ Conta criada com sucesso. Faça login para continuar.</div>
       <?php endif; ?>
 
+      <?php if (isset($_GET['senha_alterada'])): ?>
+        <div class="hint" style="color:#276B49; margin-bottom:14px;">✓ Senha alterada com sucesso. Faça login com a nova senha.</div>
+      <?php endif; ?>
+
       <?php if (!empty($erros)): ?>
         <div class="error-list">
           <ul>

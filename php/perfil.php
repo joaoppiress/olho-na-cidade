@@ -29,8 +29,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nomeValor   = trim(isset($_POST['nome']) ? $_POST['nome'] : '');
     $emailValor  = trim(isset($_POST['email']) ? $_POST['email'] : '');
     $senhaAtual  = isset($_POST['senha_atual']) ? $_POST['senha_atual'] : '';
-    $novaSenha   = isset($_POST['nova_senha']) ? $_POST['nova_senha'] : '';
-    $confirmacao = isset($_POST['confirma_senha']) ? $_POST['confirma_senha'] : '';
 
     if (mb_strlen($nomeValor) < 3) {
         $errosPerfil[] = 'Informe seu nome completo (mínimo 3 caracteres).';
@@ -41,15 +39,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!password_verify($senhaAtual, $usuario['senha_hash'])) {
         $errosPerfil[] = 'Senha atual incorreta.';
     }
-    if ($novaSenha !== '') {
-        if (mb_strlen($novaSenha) < 6) {
-            $errosPerfil[] = 'A nova senha precisa ter pelo menos 6 caracteres.';
-        }
-        if ($novaSenha !== $confirmacao) {
-            $errosPerfil[] = 'A confirmação da nova senha não confere.';
-        }
-    }
-
     if (empty($errosPerfil) && $emailValor !== $usuario['email']) {
         $stmtEmail = $pdo->prepare('SELECT id FROM usuarios WHERE email = ? AND id <> ?');
         $stmtEmail->execute([$emailValor, $_SESSION['usuario_id']]);
@@ -59,13 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errosPerfil)) {
-        if ($novaSenha !== '') {
-            $stmtSalva = $pdo->prepare('UPDATE usuarios SET nome = ?, email = ?, senha_hash = ? WHERE id = ?');
-            $stmtSalva->execute([$nomeValor, $emailValor, password_hash($novaSenha, PASSWORD_DEFAULT), $_SESSION['usuario_id']]);
-        } else {
-            $stmtSalva = $pdo->prepare('UPDATE usuarios SET nome = ?, email = ? WHERE id = ?');
-            $stmtSalva->execute([$nomeValor, $emailValor, $_SESSION['usuario_id']]);
-        }
+        $stmtSalva = $pdo->prepare('UPDATE usuarios SET nome = ?, email = ? WHERE id = ?');
+        $stmtSalva->execute([$nomeValor, $emailValor, $_SESSION['usuario_id']]);
 
         $_SESSION['usuario_nome']  = $nomeValor;
         $_SESSION['usuario_email'] = $emailValor;
@@ -189,6 +173,7 @@ foreach (array_slice(explode(' ', trim($usuario['nome'])), 0, 2) as $parte) {
       <?php else: ?>
         <a class="btn-line" href="painel.php">Meu painel</a>
       <?php endif; ?>
+      <a class="btn-line" href="alterar_senha.php">Alterar senha</a>
       <a class="btn-line" href="../index.php">&larr; Início</a>
       <a class="btn-line" href="logout.php">Sair</a>
     </div>
@@ -220,7 +205,7 @@ foreach (array_slice(explode(' ', trim($usuario['nome'])), 0, 2) as $parte) {
       <span class="label">Senha</span>
       <div>
         <span class="value mono">••••••••••</span>
-        <div class="info-hint">Protegida por hash — não é exibida por segurança.</div>
+        <div class="info-hint">Protegida por hash — não é exibida por segurança. <a href="alterar_senha.php" style="color:var(--municipal); font-weight:700;">Alterar senha</a></div>
       </div>
     </div>
     <div class="info-row">
@@ -256,17 +241,6 @@ foreach (array_slice(explode(' ', trim($usuario['nome'])), 0, 2) as $parte) {
         <input id="email" name="email" type="email" value="<?= htmlspecialchars($emailValor) ?>" required>
       </div>
 
-      <div class="row2">
-        <div class="field">
-          <label for="nova_senha">Nova senha (opcional)</label>
-          <input id="nova_senha" name="nova_senha" type="password" placeholder="Deixe em branco para manter" minlength="6">
-        </div>
-        <div class="field">
-          <label for="confirma_senha">Confirmar nova senha</label>
-          <input id="confirma_senha" name="confirma_senha" type="password" placeholder="Repita a nova senha" minlength="6">
-        </div>
-      </div>
-
       <div class="field">
         <label for="senha_atual">Senha atual</label>
         <input id="senha_atual" name="senha_atual" type="password" placeholder="Confirme com sua senha atual" required>
@@ -274,7 +248,7 @@ foreach (array_slice(explode(' ', trim($usuario['nome'])), 0, 2) as $parte) {
 
       <div class="submit-row">
         <button class="btn-solid" type="submit">Salvar alterações</button>
-        <span class="form-note">A senha atual é obrigatória para confirmar qualquer alteração.</span>
+        <span class="form-note">A senha atual é obrigatória para confirmar a alteração.</span>
       </div>
     </form>
   </div>
