@@ -137,9 +137,10 @@ $excluida = isset($_GET['excluida']) && $_GET['excluida'] === '1';
     <div class="painel-actions">
       <a class="btn-line" href="historico.php">Histórico de resoluções</a>
       <a class="btn-line" href="categorias.php">Categorias mais reclamadas</a>
+      <a class="btn-line" href="relatorio.php">Relatório mensal</a>
+      <a class="btn-line" href="novo_admin.php">Novo administrador</a>
       <a class="btn-line" href="perfil.php">Meu perfil</a>
       <a class="btn-line" href="../index.php">&larr; Início</a>
-      <a class="btn-line" href="logout.php">Sair</a>
     </div>
   </div>
 

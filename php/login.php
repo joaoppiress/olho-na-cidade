@@ -1,6 +1,9 @@
 <?php
 session_start();
 require __DIR__ . '/config.php';
+require __DIR__ . '/includes/login_limite.php';
+
+login_garantir_tabela($pdo);
 
 $erros = [];
 $emailValor = '';
@@ -18,26 +21,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($erros)) {
-        $stmt = $pdo->prepare('SELECT id, nome, email, senha_hash, tipo FROM usuarios WHERE email = ?');
-        $stmt->execute([$emailValor]);
-        $usuario = $stmt->fetch();
+        // Bloqueio temporário por excesso de tentativas (checado antes de testar a senha).
+        $segundosBloqueio = login_segundos_bloqueio($pdo, $emailValor);
 
-        // Mensagem genérica de propósito: não revela se o problema foi o e-mail ou a senha.
-        if ($usuario && password_verify($senha, $usuario['senha_hash'])) {
-            $_SESSION['usuario_id']    = (int) $usuario['id'];
-            $_SESSION['usuario_nome']  = $usuario['nome'];
-            $_SESSION['usuario_email'] = $usuario['email'];
-            $_SESSION['tipo']          = $usuario['tipo'];
+        if ($segundosBloqueio > 0) {
+            $erros[] = 'Muitas tentativas de login. Tente novamente em ' . login_texto_espera($segundosBloqueio) . '.';
+        } else {
+            $stmt = $pdo->prepare('SELECT id, nome, email, senha_hash, tipo FROM usuarios WHERE email = ?');
+            $stmt->execute([$emailValor]);
+            $usuario = $stmt->fetch();
 
-            if ($usuario['tipo'] === 'admin') {
-                header('Location: paineladm.php');
-            } else {
-                header('Location: painel.php');
+            // Mensagem genérica de propósito: não revela se o problema foi o e-mail ou a senha.
+            if ($usuario && password_verify($senha, $usuario['senha_hash'])) {
+                login_limpar($pdo, $emailValor);
+                session_regenerate_id(true);
+
+                $_SESSION['usuario_id']    = (int) $usuario['id'];
+                $_SESSION['usuario_nome']  = $usuario['nome'];
+                $_SESSION['usuario_email'] = $usuario['email'];
+                $_SESSION['tipo']          = $usuario['tipo'];
+
+                if ($usuario['tipo'] === 'admin') {
+                    header('Location: paineladm.php');
+                } else {
+                    header('Location: painel.php');
+                }
+                exit;
             }
-            exit;
-        }
 
-        $erros[] = 'E-mail ou senha incorretos.';
+            login_registrar_falha($pdo, $emailValor);
+
+            $segundosBloqueio = login_segundos_bloqueio($pdo, $emailValor);
+            if ($segundosBloqueio > 0) {
+                $erros[] = 'Muitas tentativas de login. Tente novamente em ' . login_texto_espera($segundosBloqueio) . '.';
+            } else {
+                $erros[] = 'E-mail ou senha incorretos.';
+                $restantes = login_tentativas_restantes($pdo, $emailValor);
+                if ($restantes <= 2) {
+                    $erros[] = 'Restam ' . $restantes . ' tentativa(s) antes do bloqueio temporário.';
+                }
+            }
+        }
     }
 }
 ?>

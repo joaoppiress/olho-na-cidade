@@ -43,7 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
 
         $stmt = $pdo->prepare(
-            'INSERT INTO usuarios (nome, email, senha_hash, aceite_lgpd) VALUES (?, ?, ?, 1)'
+            // O tipo é sempre 'cidadao' aqui; administradores só são criados por outro admin (novo_admin.php) ou direto no banco.
+            'INSERT INTO usuarios (nome, email, senha_hash, aceite_lgpd, tipo) VALUES (?, ?, ?, 1, \'cidadao\')'
         );
         $stmt->execute([$nomeValor, $emailValor, $senhaHash]);
 
