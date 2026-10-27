@@ -53,7 +53,7 @@ $ocorrenciasPainel = $stmtPainel->fetchAll();
       <?php if ($logado && (isset($_SESSION['tipo']) ? $_SESSION['tipo'] : 'cidadao') === 'admin'): ?>
         <a class="nav-cta" href="php/paineladm.php">Painel adm</a>
       <?php elseif ($logado): ?>
-        <a class="nav-cta" href="php/perfil.php">Perfil</a>
+        <a class="nav-cta" href="php/painel.php">Painel</a>
       <?php else: ?>
         <a class="nav-cta" href="php/login.php">Entrar</a>
       <?php endif; ?>

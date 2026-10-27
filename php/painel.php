@@ -7,8 +7,11 @@ if (!isset($_SESSION['usuario_id'])) {
 }
 
 require __DIR__ . '/config.php';
+require __DIR__ . '/includes/notificacoes.php';
 
-$stmt = $pdo->prepare('SELECT id, categoria, bairro, endereco, descricao, status, criado_em FROM ocorrencias WHERE usuario_id = ? ORDER BY criado_em DESC');
+notif_garantir_coluna($pdo);
+
+$stmt = $pdo->prepare('SELECT id, categoria, bairro, endereco, descricao, status, atualizacao_vista, criado_em FROM ocorrencias WHERE usuario_id = ? ORDER BY criado_em DESC');
 $stmt->execute([$_SESSION['usuario_id']]);
 $ocorrencias = $stmt->fetchAll();
 
@@ -19,6 +22,10 @@ $statusInfo = [
     'em_analise'  => ['label' => 'Em análise',  'classe' => 'analise'],
     'resolvido'   => ['label' => 'Resolvido',   'classe' => 'resolvido'],
 ];
+
+// Notificações (atualizações da prefeitura ainda não vistas pelo cidadão)
+$notificacoes = notif_buscar($pdo, $_SESSION['usuario_id']);
+$qtdNotif     = count($notificacoes);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -35,7 +42,7 @@ $statusInfo = [
   .painel-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:26px; flex-wrap:wrap; gap:14px; }
   .painel-top h1{ font-size:26px; font-weight:800; text-transform:none; letter-spacing:0; }
   .painel-top .sub{ font-size:13.5px; color:#8A8F96; margin-top:4px; }
-  .painel-actions{ display:flex; gap:10px; }
+  .painel-actions{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
   .btn-line{ border:1px solid var(--line); background:#fff; color:#454B52; padding:10px 16px; border-radius:4px; font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; text-decoration:none; }
   .empty-state{ background:#fff; border:1px dashed var(--line); border-radius:6px; padding:40px 24px; text-align:center; color:#8A8F96; font-size:14px; }
   .confirm-box{
@@ -74,6 +81,33 @@ $statusInfo = [
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
   .painel-wrap .occ-card .bairro::before{ content:'📍 '; }
+  /* Sininho de notificações (sem JavaScript: usa <details>) */
+  .sino{ position:relative; }
+  .sino summary{
+    list-style:none; cursor:pointer; position:relative; user-select:none;
+    border:1px solid var(--line); background:#fff; border-radius:4px; padding:8px 12px; font-size:16px; line-height:1.2;
+  }
+  .sino summary::-webkit-details-marker{ display:none; }
+  .sino[open] summary{ border-color:var(--municipal); }
+  .sino .badge{
+    position:absolute; top:-7px; right:-7px; min-width:18px; height:18px; padding:0 5px; box-sizing:border-box;
+    background:#B23D1F; color:#fff; border-radius:9px; font-size:11px; font-weight:700; line-height:18px; text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .sino-menu{
+    position:absolute; right:0; top:calc(100% + 8px); z-index:20; width:320px; max-width:calc(100vw - 40px);
+    background:#fff; border:1px solid var(--line); border-radius:6px; box-shadow:0 10px 28px rgba(0,0,0,0.14); overflow:hidden;
+  }
+  .sino-menu .titulo{ padding:12px 16px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:#5B6169; border-bottom:1px solid var(--line); }
+  .sino-menu a.item{ display:block; padding:12px 16px; border-bottom:1px solid var(--line); text-decoration:none; color:var(--ink); }
+  .sino-menu a.item:last-child{ border-bottom:0; }
+  .sino-menu a.item:hover{ background:var(--concrete); }
+  .sino-menu .item .linha1{ font-size:13px; font-weight:700; }
+  .sino-menu .item .linha1 .mono{ color:#8A8F96; font-weight:600; margin-right:6px; }
+  .sino-menu .item .linha2{ font-size:12.5px; color:var(--municipal); margin-top:2px; font-weight:600; }
+  .sino-menu .item .linha3{ font-size:12.5px; color:#5B6169; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sino-menu .vazio{ padding:18px 16px; font-size:13px; color:#8A8F96; }
+  .tag-nova{ display:inline-block; margin-left:8px; padding:2px 7px; border-radius:10px; background:#B23D1F; color:#fff; font-size:10.5px; font-weight:700; letter-spacing:0.03em; text-transform:uppercase; vertical-align:middle; }
   .card-acoes{ display:flex; gap:8px; align-items:center; flex:0 0 auto; margin-left:auto; }
 
   @media (max-width:520px){
@@ -91,8 +125,29 @@ $statusInfo = [
       <div class="sub"><?= htmlspecialchars($_SESSION['usuario_email']) ?></div>
     </div>
     <div class="painel-actions">
+      <details class="sino">
+        <summary aria-label="Notificações" title="Notificações">🔔<?php if ($qtdNotif > 0): ?><span class="badge"><?= $qtdNotif ?></span><?php endif; ?></summary>
+        <div class="sino-menu">
+          <div class="titulo">Notificações</div>
+          <?php if ($qtdNotif === 0): ?>
+            <div class="vazio">Nenhuma atualização nova.</div>
+          <?php else: ?>
+            <?php foreach ($notificacoes as $n): ?>
+              <?php $recadoN = !empty($n['recado_hist']) ? $n['recado_hist'] : $n['recado_adm']; ?>
+              <a class="item" href="ocorrencia.php?id=<?= (int) $n['id'] ?>">
+                <div class="linha1"><span class="mono">#<?= str_pad((string) $n['id'], 4, '0', STR_PAD_LEFT) ?></span><?= htmlspecialchars($n['categoria']) ?></div>
+                <div class="linha2"><?= htmlspecialchars(notif_texto_status($n, $statusInfo)) ?></div>
+                <?php if (!empty($recadoN)): ?>
+                  <div class="linha3">“<?= htmlspecialchars($recadoN) ?>”</div>
+                <?php endif; ?>
+              </a>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </div>
+      </details>
       <a class="btn-line" href="../index.php">&larr; Início</a>
       <a class="btn-line" href="perfil.php">Meu perfil</a>
+      <a class="btn-line" href="alterar_senha.php">Alterar senha</a>
       <a class="btn-solid" style="text-decoration:none;" href="Registrar.php">+ Nova ocorrência</a>
       <a class="btn-line" href="logout.php">Sair</a>
     </div>
@@ -117,7 +172,7 @@ $statusInfo = [
             <span class="desc-text"><?= htmlspecialchars($o['descricao']) ?></span>
             <span class="cat"><?= htmlspecialchars($o['categoria']) ?></span>
           </span>
-          <span class="pill <?= $info['classe'] ?>"><?= $info['label'] ?></span>
+          <span class="pill <?= $info['classe'] ?>"><?= $info['label'] ?></span><?php if ((int) $o['atualizacao_vista'] === 0): ?><span class="tag-nova">Atualizada</span><?php endif; ?>
           <span class="bairro"><?= htmlspecialchars($o['endereco']) ?></span>
           <span class="card-acoes">
             <a class="btn-line" href="ocorrencia.php?id=<?= $o['id'] ?>">Ver detalhes</a>

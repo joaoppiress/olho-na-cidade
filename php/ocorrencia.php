@@ -8,6 +8,9 @@ if (!isset($_SESSION['usuario_id'])) {
 
 require __DIR__ . '/config.php';
 require __DIR__ . '/includes/mensagem.php';
+require __DIR__ . '/includes/notificacoes.php';
+
+notif_garantir_coluna($pdo);
 
 $ehAdmin = isset($_SESSION['tipo']) && $_SESSION['tipo'] === 'admin';
 $voltarHref = $ehAdmin ? 'paineladm.php' : 'painel.php';
@@ -60,7 +63,7 @@ if ($ehAdmin && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $recadoMudou = $novoRecado !== $recadoAnterior;
 
     if ($statusMudou || $recadoMudou) {
-        $stmtAtualiza = $pdo->prepare('UPDATE ocorrencias SET status = ?, recado_adm = ?, recado_atualizado_em = NOW() WHERE id = ?');
+        $stmtAtualiza = $pdo->prepare('UPDATE ocorrencias SET status = ?, recado_adm = ?, recado_atualizado_em = NOW(), atualizacao_vista = 0 WHERE id = ?');
         $stmtAtualiza->execute([$novoStatus, $novoRecado, $id]);
 
         // Registra a alteração no histórico para fins de controle e auditoria
@@ -82,6 +85,14 @@ if ($ehAdmin && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     header('Location: ocorrencia.php?id=' . $id . '&recado=1');
     exit;
+}
+
+// Cidadão abrindo a própria ocorrência: se havia atualização não vista, marca como vista
+// e guarda os dados para destacar a novidade nesta visita.
+$novidade = null;
+if (!$ehAdmin && (int) $o['atualizacao_vista'] === 0) {
+    $novidade = notif_ultima_alteracao($pdo, $o['id']);
+    notif_marcar_vista($pdo, $o['id'], $_SESSION['usuario_id']);
 }
 
 $info = $statusInfo[$o['status']];
@@ -157,6 +168,15 @@ $podeExcluir = $ehAdmin || $o['status'] === 'pendente';
 
   <?php if ($recadoSalvo): ?>
     <div class="confirm-box">✓ Alterações salvas com sucesso.</div>
+  <?php endif; ?>
+
+  <?php if (!$ehAdmin && (int) $o['atualizacao_vista'] === 0): ?>
+    <div class="confirm-box" style="background:rgba(46,74,107,0.08); border-color:rgba(46,74,107,0.3); color:var(--municipal);">
+      🔔 <strong>Sua ocorrência foi atualizada pela prefeitura<?= $novidade ? ': ' . htmlspecialchars(notif_texto_status($novidade, $statusInfo)) : '' ?>.</strong>
+      <?php if ($novidade && !empty($novidade['criado_em'])): ?>
+        <span style="color:#8A8F96;">em <?= htmlspecialchars(date('d/m/Y H:i', strtotime($novidade['criado_em']))) ?></span>
+      <?php endif; ?>
+    </div>
   <?php endif; ?>
 
   <div class="detail-card">
