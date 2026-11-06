@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 23/10/2026 às 20:04
+-- Tempo de geração: 06/11/2026 às 17:46
 -- Versão do servidor: 10.4.32-MariaDB
 -- Versão do PHP: 8.2.12
 
@@ -51,17 +51,18 @@ CREATE TABLE `ocorrencias` (
   `status` enum('pendente','em_analise','resolvido') NOT NULL DEFAULT 'pendente',
   `recado_adm` text DEFAULT NULL,
   `recado_atualizado_em` datetime DEFAULT NULL,
-  `criado_em` datetime NOT NULL DEFAULT current_timestamp()
+  `criado_em` datetime NOT NULL DEFAULT current_timestamp(),
+  `atualizacao_vista` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Despejando dados para a tabela `ocorrencias`
 --
 
-INSERT INTO `ocorrencias` (`id`, `usuario_id`, `categoria`, `bairro`, `endereco`, `descricao`, `foto_path`, `status`, `recado_adm`, `recado_atualizado_em`, `criado_em`) VALUES
-(4, 1, 'Iluminação pública', 'Vila Norte', 'rua bertasso, 31', 'cncnwjnjwenjnc', NULL, 'pendente', NULL, NULL, '2026-10-16 14:35:47'),
-(5, 1, 'Descarte irregular de lixo', 'centro', 'rua roberto, 33', 'wdqdDD3D2Dsss', NULL, 'pendente', NULL, NULL, '2026-10-16 14:36:21'),
-(6, 1, 'Iluminação pública', 'vila sul', 'rua alberto, 211', 'cwececec3ec', NULL, 'pendente', NULL, NULL, '2026-10-16 14:36:46');
+INSERT INTO `ocorrencias` (`id`, `usuario_id`, `categoria`, `bairro`, `endereco`, `descricao`, `foto_path`, `status`, `recado_adm`, `recado_atualizado_em`, `criado_em`, `atualizacao_vista`) VALUES
+(4, 1, 'Iluminação pública', 'Vila Norte', 'rua bertasso, 31', 'cncnwjnjwenjnc', NULL, 'pendente', NULL, NULL, '2026-10-16 14:35:47', 1),
+(5, 1, 'Descarte irregular de lixo', 'centro', 'rua roberto, 33', 'wdqdDD3D2Dsss', NULL, 'pendente', NULL, NULL, '2026-10-16 14:36:21', 1),
+(6, 1, 'Iluminação pública', 'vila sul', 'rua alberto, 211', 'cwececec3ec', NULL, 'em_analise', 'a equipe de manutenção já foi ao local e está iniciando a manutenção', '2026-10-27 10:19:45', '2026-10-16 14:36:46', 1);
 
 -- --------------------------------------------------------
 
@@ -117,7 +118,8 @@ CREATE TABLE `ocorrencia_historico` (
 --
 
 INSERT INTO `ocorrencia_historico` (`id`, `ocorrencia_id`, `ocorrencia_categoria`, `status_anterior`, `status_novo`, `recado`, `admin_id`, `admin_nome`, `criado_em`) VALUES
-(1, 1, 'Vazamento de água', 'pendente', 'resolvido', 'Equipe de manutenção já está indo ao local.', 2, 'Administrador', '2026-09-24 18:35:55');
+(1, 1, 'Vazamento de água', 'pendente', 'resolvido', 'Equipe de manutenção já está indo ao local.', 2, 'Administrador', '2026-09-24 18:35:55'),
+(2, 6, 'Iluminação pública', 'pendente', 'em_analise', 'a equipe de manutenção já foi ao local e está iniciando a manutenção', 2, 'Administrador', '2026-10-27 10:19:45');
 
 -- --------------------------------------------------------
 
@@ -140,7 +142,7 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id`, `nome`, `email`, `senha_hash`, `aceite_lgpd`, `criado_em`, `tipo`) VALUES
-(1, 'Katatau', 'a@gmail.com', '$2y$10$dFq/vQxTjxw3nIt5IGt0F.Vhqla1v10XWyVRFYoYuadnkxSRK361G', 1, '2026-08-16 18:05:19', 'cidadao'),
+(1, 'Katatau', 'a@gmail.com', '$2y$10$Kd..VKLYyv.HQT/XKT3/w.JQlENiy0DmDYeIzE6E0GnsJCe/UMdFG', 1, '2026-08-16 18:05:19', 'cidadao'),
 (2, 'Administrador', 'adm@gmail.com', '$2y$10$WvXbNEbIsvI1YkL22xFiAOCrS1q0R5EQIG84ATV4ywQoACc9vPaUu', 1, '2026-08-23 18:11:15', 'admin');
 
 --
@@ -193,7 +195,7 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de tabela `login_tentativas`
 --
 ALTER TABLE `login_tentativas`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de tabela `ocorrencias`
@@ -211,7 +213,7 @@ ALTER TABLE `ocorrencia_excluida`
 -- AUTO_INCREMENT de tabela `ocorrencia_historico`
 --
 ALTER TABLE `ocorrencia_historico`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de tabela `usuarios`
